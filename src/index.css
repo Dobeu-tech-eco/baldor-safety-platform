@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  color: #111827;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4 { line-height: 1.2; }

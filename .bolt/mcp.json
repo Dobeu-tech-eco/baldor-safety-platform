@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "linear": {
+      "enabled": true
+    },
+    "github": {
+      "enabled": true
+    },
+    "context7": {
+      "enabled": true
+    },
+    "composio": {
+      "enabled": true
+    }
+  }
+}
