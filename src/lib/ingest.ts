@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { deriveBranch } from './branches';
 import { parseAny, fmt } from './dates';
-import { supabase, Incident } from './supabase';
+import { supabase, Incident, UploadFile } from './supabase';
 
 export type ParsedRow = Partial<Incident> & { _raw: Record<string, unknown> };
 
@@ -41,6 +41,31 @@ const COLUMN_MAP: Record<string, keyof Incident | '_skip'> = {
 
 function normHeader(s: string): string {
   return String(s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+async function sha256Hex(data: ArrayBuffer | Uint8Array | string): Promise<string> {
+  const buf = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+  const hash = await crypto.subtle.digest('SHA-256', buf as ArrayBuffer);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function computeFileHash(buffer: ArrayBuffer): Promise<string> {
+  return sha256Hex(buffer);
+}
+
+function rowFingerprint(r: Partial<Incident>): string {
+  return [
+    r.occurrence_number ?? '',
+    r.loss_date ?? '',
+    (r.employee ?? '').toLowerCase().trim(),
+    (r.branch ?? '').toLowerCase().trim(),
+    (r.incident_type ?? '').toLowerCase().trim(),
+    (r.preventable ?? '').toLowerCase().trim(),
+  ].join('|');
+}
+
+export async function computeRowHash(r: Partial<Incident>): Promise<string> {
+  return sha256Hex(rowFingerprint(r));
 }
 
 export function parseWorkbook(file: ArrayBuffer): ParsedRow[] {
@@ -90,21 +115,33 @@ export function parseWorkbook(file: ArrayBuffer): ParsedRow[] {
   return rows;
 }
 
-export type CleanedRow = Omit<Incident, 'id' | 'created_at' | 'upload_batch_id'> & { _raw: Record<string, unknown> };
-export type CleanResult = { rows: CleanedRow[]; followOnRemoved: number; classificationsRestored: number; };
+export type CleanedRow = Omit<Incident, 'id' | 'created_at' | 'upload_batch_id'> & { _raw: Record<string, unknown>; row_hash: string };
+export type DuplicateClass = 'new' | 'exact-duplicate' | 'conflict';
+export type ClassifiedRow = { row: CleanedRow; classification: DuplicateClass; existingHash?: string };
+export type CleanResult = {
+  rows: CleanedRow[];
+  followOnRemoved: number;
+  classificationsRestored: number;
+  classified: ClassifiedRow[];
+  newCount: number;
+  duplicateCount: number;
+  conflictCount: number;
+};
 
 export async function cleanRows(parsed: ParsedRow[]): Promise<CleanResult> {
-  const { data: priorIncidents } = await supabase.from('incidents').select('occurrence_number, preventable');
+  const { data: priorIncidents } = await supabase.from('incidents').select('occurrence_number, preventable, row_hash');
   const priorMap = new Map<string, string>();
+  const existingHashByOcc = new Map<string, string>();
   (priorIncidents || []).forEach((r) => {
     if (r.preventable === 'Yes' || r.preventable === 'No') priorMap.set(r.occurrence_number, r.preventable);
+    if (r.row_hash) existingHashByOcc.set(r.occurrence_number, r.row_hash);
   });
 
   const { data: overrides } = await supabase.from('overrides').select('occurrence_number, preventable');
   const overrideMap = new Map<string, string>();
   (overrides || []).forEach((o) => overrideMap.set(o.occurrence_number, o.preventable));
 
-  const enriched = parsed.map((p) => {
+  const enriched: CleanedRow[] = parsed.map((p) => {
     const recordId = String(p.record_id ?? '').trim();
     const m = recordId.match(/^(.+?)-(\d+)$/);
     const baseOccurrence = m ? m[1] : recordId;
@@ -126,6 +163,7 @@ export async function cleanRows(parsed: ParsedRow[]): Promise<CleanResult> {
       tenure_days: tenureDays,
       preventable: String(p.preventable ?? '').trim(),
       is_followon: false,
+      row_hash: '',
     } as CleanedRow;
   });
 
@@ -158,21 +196,63 @@ export async function cleanRows(parsed: ParsedRow[]): Promise<CleanResult> {
     if (ov) row.preventable = ov;
   });
 
-  return { rows: enriched, followOnRemoved, classificationsRestored };
+  for (const row of enriched) {
+    row.row_hash = await computeRowHash(row);
+  }
+
+  const classified: ClassifiedRow[] = enriched.map((row) => {
+    const existing = existingHashByOcc.get(row.occurrence_number!);
+    if (!existing) return { row, classification: 'new' as DuplicateClass };
+    if (existing === row.row_hash) return { row, classification: 'exact-duplicate' as DuplicateClass, existingHash: existing };
+    return { row, classification: 'conflict' as DuplicateClass, existingHash: existing };
+  });
+
+  const newCount = classified.filter((c) => c.classification === 'new').length;
+  const duplicateCount = classified.filter((c) => c.classification === 'exact-duplicate').length;
+  const conflictCount = classified.filter((c) => c.classification === 'conflict').length;
+
+  return { rows: enriched, followOnRemoved, classificationsRestored, classified, newCount, duplicateCount, conflictCount };
 }
 
-export async function commitIngest(cleaned: CleanResult, filename: string, userId: string | null): Promise<{ batchId: string; inserted: number }> {
+export type FileDuplicateCheck = { isDuplicate: boolean; existing: UploadFile | null };
+
+export async function checkFileDuplicate(fileHash: string): Promise<FileDuplicateCheck> {
+  const { data } = await supabase.from('upload_files').select('*').eq('file_hash', fileHash).maybeSingle();
+  return { isDuplicate: !!data, existing: (data as UploadFile | null) ?? null };
+}
+
+export type CommitOptions = { acceptConflicts: boolean };
+export type CommitResult = {
+  batchId: string;
+  inserted: number;
+  duplicatesSkipped: number;
+  conflictsResolved: number;
+  uniqueRowsKept: number;
+};
+
+export async function commitIngest(
+  cleaned: CleanResult,
+  file: { name: string; size: number; hash: string },
+  userId: string | null,
+  options: CommitOptions = { acceptConflicts: true }
+): Promise<CommitResult> {
   const { data: batch, error: batchErr } = await supabase
     .from('upload_batches')
     .insert({
-      filename, uploaded_by: userId, row_count: cleaned.rows.length,
+      filename: file.name, uploaded_by: userId, row_count: cleaned.rows.length,
       follow_on_removed: cleaned.followOnRemoved, classifications_restored: cleaned.classificationsRestored,
     })
     .select().maybeSingle();
   if (batchErr || !batch) throw new Error(batchErr?.message || 'Failed to create upload batch');
 
-  const payload = cleaned.rows.map((r) => {
-    const { _raw, ...rest } = r as any;
+  const toWrite = cleaned.classified.filter((c) => {
+    if (c.classification === 'exact-duplicate') return false;
+    if (c.classification === 'conflict' && !options.acceptConflicts) return false;
+    return true;
+  });
+
+  const payload = toWrite.map((c) => {
+    const { _raw, ...rest } = c.row as any;
     return { ...rest, upload_batch_id: batch.id, updated_at: new Date().toISOString() };
   });
 
@@ -184,5 +264,32 @@ export async function commitIngest(cleaned: CleanResult, filename: string, userI
     if (error) throw new Error(error.message);
     inserted += chunk.length;
   }
-  return { batchId: batch.id, inserted };
+
+  await supabase.from('upload_files').insert({
+    file_hash: file.hash,
+    filename: file.name,
+    byte_size: file.size,
+    row_count: cleaned.rows.length,
+    row_hashes: cleaned.rows.map((r) => r.row_hash),
+    uploaded_by: userId,
+    batch_id: batch.id,
+  });
+
+  const duplicatesSkipped = cleaned.duplicateCount;
+  const conflictsResolved = options.acceptConflicts ? cleaned.conflictCount : 0;
+  const uniqueRowsKept = cleaned.newCount + (options.acceptConflicts ? cleaned.conflictCount : 0);
+
+  if (duplicatesSkipped > 0 || conflictsResolved > 0) {
+    await supabase.from('dataset_merges').insert({
+      source_batch_id: batch.id,
+      target_batch_id: null,
+      duplicate_rows_removed: duplicatesSkipped,
+      unique_rows_kept: uniqueRowsKept,
+      new_rows_added: cleaned.newCount,
+      performed_by: userId,
+      note: `Merged ${file.name}`,
+    });
+  }
+
+  return { batchId: batch.id, inserted, duplicatesSkipped, conflictsResolved, uniqueRowsKept };
 }

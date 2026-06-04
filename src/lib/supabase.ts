@@ -42,3 +42,5 @@ export type SnowEvent = { id: string; year: number; month: number; attributable_
 export type Override = { id: string; occurrence_number: string; preventable: string; note: string; };
 export type UploadBatch = { id: string; filename: string; uploaded_by: string | null; uploaded_at: string; row_count: number; follow_on_removed: number; classifications_restored: number; notes: string; };
 export type AppUser = { id: string; email: string; full_name: string; is_admin: boolean; };
+export type UploadFile = { id: string; file_hash: string; filename: string; byte_size: number; row_count: number; row_hashes: string[]; uploaded_by: string | null; uploaded_at: string; batch_id: string | null; };
+export type DatasetMerge = { id: string; source_batch_id: string | null; target_batch_id: string | null; duplicate_rows_removed: number; unique_rows_kept: number; new_rows_added: number; performed_by: string | null; performed_at: string; note: string; };
