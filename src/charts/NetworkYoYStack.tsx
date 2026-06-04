@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
 import { supabase, Incident } from '../lib/supabase';
@@ -55,6 +55,7 @@ export default function NetworkYoYStack() {
           <Bar dataKey="nonpreventable" stackId="a" fill={COLORS.nonPreventable} name="Non-preventable" />
           {!foldPending && <Bar dataKey="pending" stackId="a" fill={COLORS.pending} name="Pending" />}
           <Line type="monotone" dataKey="prior" stroke={COLORS.prior} strokeWidth={2} name="2025 Total" />
+          <Brush dataKey="month" height={24} stroke={COLORS.primary} travellerWidth={8} />
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>

@@ -9,6 +9,7 @@ import {
   CleanResult,
 } from '../lib/ingest';
 import { useAuth } from '../lib/auth';
+import { useToast } from '../components/Toast';
 import { supabase, UploadFile, UploadBatch, DatasetMerge } from '../lib/supabase';
 
 type Stage = 'idle' | 'parsing' | 'reviewing' | 'committing' | 'done';
@@ -18,6 +19,7 @@ type Notice = { kind: 'info' | 'success' | 'warning' | 'error'; text: string } |
 export default function UploadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [file, setFile] = useState<File | null>(null);
   const [fileHash, setFileHash] = useState<string | null>(null);
@@ -112,10 +114,9 @@ export default function UploadPage() {
         user?.id ?? null,
         { acceptConflicts },
       );
-      setNotice({
-        kind: 'success',
-        text: `Committed batch ${r.batchId.slice(0, 8)}. ${r.inserted} rows written, ${r.duplicatesSkipped} duplicates removed, ${r.uniqueRowsKept} unique rows kept.`,
-      });
+      const msg = `Committed batch ${r.batchId.slice(0, 8)}. ${r.inserted} rows written, ${r.duplicatesSkipped} duplicates removed, ${r.uniqueRowsKept} unique rows kept.`;
+      setNotice({ kind: 'success', text: msg });
+      toast('success', msg);
       setStage('done');
       await loadHistory();
       setTimeout(reset, 200);

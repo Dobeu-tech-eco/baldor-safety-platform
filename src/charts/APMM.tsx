@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, Brush } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
 import { BRANCH_ORDER } from '../lib/branches';
@@ -71,6 +71,7 @@ export default function APMM() {
           <Line yAxisId="right" type="monotone" dataKey="apmm" stroke={COLORS.darkRed} strokeWidth={2} name="APMM" />
           <ReferenceLine yAxisId="right" y={0.5} stroke={COLORS.target} strokeDasharray="4 4" label={{ value: 'Target 0.5', fontSize: 10, fill: COLORS.target, position: 'right' }} />
           <ReferenceLine yAxisId="right" y={1.0} stroke={COLORS.darkRed} strokeDasharray="4 4" label={{ value: 'Industry 1.0', fontSize: 10, fill: COLORS.darkRed, position: 'right' }} />
+          <Brush dataKey="month" height={24} stroke={COLORS.primary} travellerWidth={8} />
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>

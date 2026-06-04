@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
 import { supabase, Incident, SnowEvent } from '../lib/supabase';
@@ -53,6 +53,7 @@ export default function NetworkYoYSnow() {
           <Line type="monotone" dataKey="2026" stroke={COLORS.primary} strokeWidth={3} name="2026" />
           <Line type="monotone" dataKey="target" stroke={COLORS.target} strokeWidth={1.5} strokeDasharray="5 5" name="Target" />
           <Line type="monotone" dataKey="normal" stroke={COLORS.normal} strokeWidth={1.5} strokeDasharray="3 3" name="Normal" />
+          <Brush dataKey="month" height={24} stroke={COLORS.primary} travellerWidth={8} />
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>

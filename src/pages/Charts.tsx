@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Send, Download } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { parseRequest, chartTitle, ChartId } from '../lib/parser';
 import { trailing30, ytd, lastWeek, DateRange } from '../lib/dates';
 import ChartRouter from '../charts/ChartRouter';
@@ -24,6 +25,8 @@ export default function Charts() {
   const [chartId, setChartId] = useState<ChartId>('network-yoy-stack');
   const [range, setRange] = useState<DateRange | undefined>(ytd());
   const [notes, setNotes] = useState<string[]>([]);
+  const [exporting, setExporting] = useState(false);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const q = params.get('q');
@@ -44,11 +47,34 @@ export default function Charts() {
     setNotes(r.notes);
   }
 
+  async function exportAll() {
+    if (!chartAreaRef.current) return;
+    setExporting(true);
+    try {
+      const dataUrl = await toPng(chartAreaRef.current, { backgroundColor: '#ffffff', pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `${chartTitle(chartId).replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-export.png`;
+      link.href = dataUrl;
+      link.click();
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Charts</h1>
-        <p className="text-sm text-gray-500 mt-1">{chartTitle(chartId)} · {range?.label ?? 'Full data'}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Charts</h1>
+          <p className="text-sm text-gray-500 mt-1">{chartTitle(chartId)} · {range?.label ?? 'Full data'}</p>
+        </div>
+        <button
+          onClick={exportAll}
+          disabled={exporting}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" />{exporting ? 'Exporting...' : 'Export PNG'}
+        </button>
       </div>
 
       <form onSubmit={submitAsk} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
@@ -87,7 +113,9 @@ export default function Charts() {
         </div>
       </div>
 
-      <ChartRouter chartId={chartId} range={range} />
+      <div ref={chartAreaRef}>
+        <ChartRouter chartId={chartId} range={range} />
+      </div>
     </div>
   );
 }

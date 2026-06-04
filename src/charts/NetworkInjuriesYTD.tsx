@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Brush } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
 import { supabase, Incident } from '../lib/supabase';
@@ -40,6 +40,7 @@ export default function NetworkInjuriesYTD() {
           <Bar yAxisId="left" dataKey="injuries" fill={COLORS.injury} name="Injuries" />
           <Bar yAxisId="left" dataKey="osha" fill={COLORS.osha} name="OSHA" />
           <Line yAxisId="right" type="monotone" dataKey="oshaPct" stroke={COLORS.darkRed} strokeWidth={2} name="OSHA %" />
+          <Brush dataKey="month" height={24} stroke={COLORS.primary} travellerWidth={8} />
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>
