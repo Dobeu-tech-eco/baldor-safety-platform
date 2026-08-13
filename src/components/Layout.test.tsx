@@ -68,6 +68,31 @@ describe('Layout', () => {
     });
   });
 
+  it('closes the drawer when the overlay is clicked', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: /open navigation menu/i }));
+    await user.click(screen.getByTestId('nav-overlay'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /navigation menu/i })).toBeNull();
+    });
+  });
+
+  it('moves focus to main content after a drawer navigation', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: /open navigation menu/i }));
+    const chartsLinks = screen.getAllByRole('link', { name: 'Charts' });
+    await user.click(chartsLinks[chartsLinks.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Charts page')).toBeTruthy();
+      expect(document.activeElement?.id).toBe('main-content');
+    });
+  });
+
   it('signs out and navigates to login', async () => {
     const user = userEvent.setup();
     renderLayout();

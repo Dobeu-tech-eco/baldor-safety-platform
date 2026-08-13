@@ -93,8 +93,8 @@ export default function Data() {
                   <td className="px-3 py-2">
                     {!r.is_injury && (
                       <div className="flex gap-1">
-                        <button onClick={() => setPreventable(r.occurrence_number, 'Yes')} className="text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-red-50">Yes</button>
-                        <button onClick={() => setPreventable(r.occurrence_number, 'No')} className="text-xs px-2 py-0.5 border border-gray-300 rounded hover:bg-blue-50">No</button>
+                        <button type="button" onClick={() => setPreventable(r.occurrence_number, 'Yes')} aria-label={`Mark ${r.occurrence_number} preventable`} className="text-xs min-h-11 px-3 border border-gray-300 rounded-xl hover:bg-red-50">Yes</button>
+                        <button type="button" onClick={() => setPreventable(r.occurrence_number, 'No')} aria-label={`Mark ${r.occurrence_number} not preventable`} className="text-xs min-h-11 px-3 border border-gray-300 rounded-xl hover:bg-blue-50">No</button>
                       </div>
                     )}
                   </td>

@@ -139,7 +139,7 @@ export default function Settings() {
               <div key={u.id} className="px-5 py-3 flex items-center justify-between text-sm">
                 <div>
                   <div className="font-medium text-gray-900">{u.email}</div>
-                  {u.is_admin && <div className="text-xs text-baldor-lime font-semibold">Admin</div>}
+                  {u.is_admin && <div className="text-xs text-baldor-primary font-semibold">Admin</div>}
                 </div>
                 <button type="button" onClick={() => toggleAdmin(u)} className="si-btn-secondary text-xs">
                   {u.is_admin ? 'Revoke admin' : 'Make admin'}

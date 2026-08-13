@@ -26,6 +26,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/settings': 'Settings',
 };
 
+const MD_QUERY = '(min-width: 768px)';
+
 function navClass(isActive: boolean, compact: boolean) {
   const size = compact
     ? 'min-h-11 px-3 text-sm'
@@ -104,20 +106,46 @@ export default function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(mobileOpen, drawerRef);
+  const restoreFocusRef = useRef(true);
+  const mobileOpenRef = useRef(false);
+  const focusMainOnCloseRef = useRef(false);
+  mobileOpenRef.current = mobileOpen;
+  useFocusTrap(mobileOpen, drawerRef, restoreFocusRef);
 
   const pageTitle = PAGE_TITLES[location.pathname] ?? 'Safety Insights';
 
   useEffect(() => {
+    if (mobileOpenRef.current) {
+      restoreFocusRef.current = false;
+      focusMainOnCloseRef.current = true;
+    }
     setMobileOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (mobileOpen || !focusMainOnCloseRef.current) return;
+    focusMainOnCloseRef.current = false;
+    document.getElementById('main-content')?.focus();
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    const mql = window.matchMedia(MD_QUERY);
+    function onChange() {
+      if (mql.matches) {
+        restoreFocusRef.current = false;
+        setMobileOpen(false);
+      }
+    }
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMobileOpen(false);
+      if (e.key === 'Escape') closeMenu();
     }
     document.addEventListener('keydown', onKey);
     return () => {
@@ -126,7 +154,18 @@ export default function Layout() {
     };
   }, [mobileOpen]);
 
+  function openMenu() {
+    restoreFocusRef.current = true;
+    setMobileOpen(true);
+  }
+
+  function closeMenu() {
+    restoreFocusRef.current = true;
+    setMobileOpen(false);
+  }
+
   async function handleSignOut() {
+    restoreFocusRef.current = false;
     setMobileOpen(false);
     await signOut();
     navigate('/login');
@@ -141,7 +180,10 @@ export default function Layout() {
         Skip to content
       </a>
 
-      <div className="flex flex-1 min-h-0">
+      <div
+        className="flex flex-1 min-h-0"
+        {...(mobileOpen ? { inert: true } : {})}
+      >
         <aside className="hidden md:flex w-60 shrink-0 bg-baldor-ink text-white flex-col">
           <div className="px-4 py-5 border-b border-white/10">
             <Link to="/dashboard" className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baldor-lime">
@@ -160,7 +202,7 @@ export default function Layout() {
             <span className="sr-only">{pageTitle}</span>
             <button
               type="button"
-              onClick={() => setMobileOpen(true)}
+              onClick={openMenu}
               aria-label="Open navigation menu"
               aria-expanded={mobileOpen}
               aria-controls="mobile-drawer"
@@ -176,16 +218,20 @@ export default function Layout() {
         </div>
       </div>
 
-      <footer className="bg-baldor-ink text-gray-400 text-[11px] py-2 text-center tracking-widest uppercase border-t border-white/10">
+      <footer
+        className="bg-baldor-ink text-gray-400 text-[11px] py-2 text-center tracking-widest uppercase border-t border-white/10"
+        {...(mobileOpen ? { inert: true } : {})}
+      >
         Confidential — Internal Use Only
       </footer>
 
       {mobileOpen && (
         <>
           <div
+            data-testid="nav-overlay"
             className="md:hidden fixed inset-0 z-50 bg-baldor-ink/80 backdrop-blur-sm"
             aria-hidden="true"
-            onClick={() => setMobileOpen(false)}
+            onClick={closeMenu}
           />
           <div
             ref={drawerRef}
@@ -193,20 +239,20 @@ export default function Layout() {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
-            className="md:hidden fixed inset-0 z-50 flex flex-col bg-baldor-ink text-white"
+            className="md:hidden fixed inset-y-0 left-0 z-50 w-[min(20rem,100%)] flex flex-col bg-baldor-ink text-white shadow-2xl"
           >
             <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b border-white/10">
               <BrandMark />
               <button
                 type="button"
-                onClick={() => setMobileOpen(false)}
+                onClick={closeMenu}
                 aria-label="Close navigation menu"
                 className="min-h-touch min-w-touch flex items-center justify-center rounded-xl text-gray-300 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baldor-lime"
               >
                 <X className="w-6 h-6" aria-hidden="true" />
               </button>
             </div>
-            <NavList onNavigate={() => setMobileOpen(false)} compact={false} />
+            <NavList compact={false} />
             <UserBlock compact={false} onSignOut={handleSignOut} />
           </div>
         </>
