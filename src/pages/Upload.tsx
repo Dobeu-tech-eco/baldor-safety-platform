@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Upload as UploadIcon, FileCheck2, AlertCircle, CheckCircle2,
+  Upload as UploadIcon, AlertCircle, CheckCircle2,
   GitMerge, FileText, Clock, ShieldAlert, RefreshCw, Files,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -188,7 +188,7 @@ export default function UploadPage() {
         </div>
       )}
 
-      {cleaned && stage === 'reviewing' && (
+      {cleaned && (stage === 'reviewing' || stage === 'committing') && (
         <PreviewPanel
           cleaned={cleaned}
           acceptConflicts={acceptConflicts}

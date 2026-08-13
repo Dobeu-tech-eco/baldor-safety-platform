@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase, AppUser } from './supabase';
 import type { Session, User } from '@supabase/supabase-js';
+import { identifyUser, resetAnalytics } from './analytics';
 
 type AuthContextValue = {
   session: Session | null;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
         setLoading(false);
+        resetAnalytics();
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -43,8 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isFirst = (count ?? 0) === 0;
       const { data: created } = await supabase.from('app_users').insert({ id: u.id, email: u.email ?? '', is_admin: isFirst }).select().maybeSingle();
       setProfile(created);
+      if (created) identifyUser({ userId: u.id, isAdmin: created.is_admin });
     } else {
       setProfile(data);
+      identifyUser({ userId: u.id, isAdmin: data.is_admin });
     }
     setLoading(false);
   }
@@ -58,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await supabase.auth.signOut();
     setProfile(null);
+    resetAnalytics();
   }
 
   return (

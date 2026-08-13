@@ -41,7 +41,7 @@ export default function PreventabilityPie() {
               <Pie data={slices} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} strokeWidth={0}>
                 {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
               </Pie>
-              <Tooltip formatter={(v: number) => `${v} (${total ? Math.round((v / total) * 100) : 0}%)`} />
+              <Tooltip formatter={(v) => `${Number(v ?? 0)} (${total ? Math.round((Number(v ?? 0) / total) * 100) : 0}%)`} />
               <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>

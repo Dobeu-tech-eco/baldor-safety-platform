@@ -10,12 +10,14 @@ import Charts from './pages/Charts';
 import Data from './pages/Data';
 import MileagePage from './pages/Mileage';
 import Settings from './pages/Settings';
+import { AnalyticsProvider } from './lib/AnalyticsProvider';
 
 export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
       <BrowserRouter>
+        <AnalyticsProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
@@ -31,6 +33,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        </AnalyticsProvider>
       </BrowserRouter>
       </ToastProvider>
     </AuthProvider>

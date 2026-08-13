@@ -33,7 +33,7 @@ export default function Layout() {
               </div>
             </Link>
           </div>
-          <nav className="flex-1 px-2 py-4 space-y-1">
+          <nav aria-label="Primary" className="flex-1 px-2 py-4 space-y-1">
             {navItem('/dashboard', <LayoutDashboard className="w-4 h-4" />, 'Dashboard')}
             {navItem('/charts', <BarChart3 className="w-4 h-4" />, 'Charts')}
             {navItem('/upload', <Upload className="w-4 h-4" />, 'Upload')}
