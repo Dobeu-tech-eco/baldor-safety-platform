@@ -11,6 +11,12 @@
     },
     "composio": {
       "enabled": true
+    },
+    "animaapp": {
+      "enabled": false
+    },
+    "shaders": {
+      "enabled": true
     }
   }
 }
