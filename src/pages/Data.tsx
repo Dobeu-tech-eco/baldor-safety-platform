@@ -33,28 +33,39 @@ export default function Data() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Data</h1>
-        <p className="text-sm text-gray-500 mt-1">Browse and edit preventability classifications</p>
+        <h1 className="si-page-title">Data</h1>
+        <p className="si-page-sub">Browse and edit preventability classifications</p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-wrap items-center gap-3">
+      <div className="si-card p-4 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search occurrence, employee, location..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
+          <label htmlFor="data-search" className="sr-only">Search occurrence, employee, location</label>
+          <input
+            id="data-search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search occurrence, employee, location..."
+            className="si-input w-full pl-9"
+          />
         </div>
-        <select value={branch} onChange={(e) => setBranch(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+        <label htmlFor="data-branch" className="sr-only">Branch</label>
+        <select
+          id="data-branch"
+          value={branch}
+          onChange={(e) => setBranch(e.target.value)}
+          className="si-select"
+        >
           <option value="">All branches</option>
           {['BNY', 'BMA', 'BPA', 'BDC'].map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
-        <label className="flex items-center gap-2 text-xs text-gray-700">
+        <label className="flex items-center gap-2 text-xs text-gray-700 min-h-11">
           <input type="checkbox" checked={includeFollowons} onChange={(e) => setIncludeFollowons(e.target.checked)} />
           Include follow-ons
         </label>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div className="si-card overflow-hidden">
         <div className="overflow-x-auto max-h-[600px]">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 sticky top-0">
@@ -74,8 +85,8 @@ export default function Data() {
                   <td className="px-3 py-2">{r.employee}</td>
                   <td className="px-3 py-2">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      r.preventable === 'Yes' ? 'bg-red-100 text-[#C0392B]' :
-                      r.preventable === 'No' ? 'bg-blue-100 text-[#1F4E79]' :
+                      r.preventable === 'Yes' ? 'bg-red-100 text-baldor-alert' :
+                      r.preventable === 'No' ? 'bg-blue-100 text-baldor-navy' :
                       'bg-gray-100 text-gray-600'
                     }`}>{r.preventable || 'Pending'}</span>
                   </td>

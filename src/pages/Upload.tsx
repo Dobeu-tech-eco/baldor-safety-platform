@@ -134,16 +134,17 @@ export default function UploadPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Upload incident export</h1>
-          <p className="text-sm text-gray-500 mt-1">XLSX or CSV. Duplicate files and overlapping rows are detected automatically.</p>
+          <h1 className="si-page-title">Upload incident export</h1>
+          <p className="si-page-sub">XLSX or CSV. Duplicate files and overlapping rows are detected automatically.</p>
         </div>
         <button
+          type="button"
           onClick={loadHistory}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+          className="si-btn-secondary self-start"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${historyLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${historyLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
           {lastSync ? `Synced ${format(lastSync, 'p')}` : 'Sync'}
         </button>
       </div>
@@ -152,15 +153,15 @@ export default function UploadPage() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
-        className={`bg-white border-2 border-dashed rounded-lg p-10 text-center transition-colors ${
-          dragOver ? 'border-[#006838] bg-green-50' : 'border-gray-300 hover:border-[#006838]'
+        className={`bg-white border-2 border-dashed rounded-xl p-10 text-center transition-colors ${
+          dragOver ? 'border-baldor-primary bg-green-50' : 'border-gray-300 hover:border-baldor-primary'
         }`}
       >
-        <UploadIcon className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+        <UploadIcon className="w-10 h-10 text-gray-400 mx-auto mb-3" aria-hidden="true" />
         <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-        <button onClick={() => inputRef.current?.click()}
-          className="px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d]">Choose file</button>
+        <button type="button" onClick={() => inputRef.current?.click()}
+          className="si-btn-primary">Choose file</button>
         <p className="text-xs text-gray-500 mt-3">
           {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : 'Drag a file here or click to browse'}
         </p>
@@ -172,7 +173,7 @@ export default function UploadPage() {
       {notice && <NoticeBanner notice={notice} />}
 
       {duplicateFile && stage === 'reviewing' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start gap-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
           <ShieldAlert className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-amber-900">Duplicate file detected</p>
@@ -208,11 +209,11 @@ function NoticeBanner({ notice }: { notice: NonNullable<Notice> }) {
     info: 'bg-blue-50 border-blue-200 text-blue-900',
     success: 'bg-green-50 border-green-200 text-[#2E7D32]',
     warning: 'bg-amber-50 border-amber-200 text-amber-900',
-    error: 'bg-red-50 border-red-200 text-[#C0392B]',
+    error: 'bg-red-50 border-red-200 text-baldor-alert',
   };
   const Icon = notice.kind === 'success' ? CheckCircle2 : notice.kind === 'error' ? AlertCircle : notice.kind === 'warning' ? ShieldAlert : FileText;
   return (
-    <div className={`border rounded-md p-3 text-sm flex items-start gap-2 ${styles[notice.kind]}`}>
+    <div className={`border rounded-xl p-3 text-sm flex items-start gap-2 ${styles[notice.kind]}`}>
       <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
       <span>{notice.text}</span>
     </div>
@@ -228,7 +229,7 @@ function PreviewPanel({
   committing: boolean;
   onCommit: () => void;
 }) {
-  const stats = [
+  const stats: { label: string; value: number; tone: 'green' | 'amber' | 'gray' }[] = [
     { label: 'New', value: cleaned.newCount, tone: 'green' },
     { label: 'Exact duplicates', value: cleaned.duplicateCount, tone: 'gray' },
     { label: 'Conflicts', value: cleaned.conflictCount, tone: 'amber' },
@@ -236,21 +237,21 @@ function PreviewPanel({
     { label: 'Classifications restored', value: cleaned.classificationsRestored, tone: 'gray' },
   ];
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-      <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
+    <div className="si-card">
+      <div className="px-5 py-4 border-b border-gray-200 bg-baldor-cream/60">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h2 className="font-semibold text-gray-900">Merge preview</h2>
             <p className="text-xs text-gray-500 mt-0.5">{cleaned.rows.length} rows parsed from upload</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <label className="flex items-center gap-2 text-xs text-gray-700">
+            <label className="flex items-center gap-2 text-xs text-gray-700 min-h-11">
               <input type="checkbox" checked={acceptConflicts} onChange={(e) => setAcceptConflicts(e.target.checked)} />
               Overwrite conflicting rows ({cleaned.conflictCount})
             </label>
-            <button onClick={onCommit} disabled={committing}
-              className="flex items-center gap-2 px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] disabled:opacity-50">
-              <GitMerge className="w-4 h-4" />{committing ? 'Merging...' : 'Commit merge'}
+            <button type="button" onClick={onCommit} disabled={committing}
+              className="si-btn-primary">
+              <GitMerge className="w-4 h-4" aria-hidden="true" />{committing ? 'Merging...' : 'Commit merge'}
             </button>
           </div>
         </div>
@@ -315,8 +316,8 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
   const fileByBatch = new Map(files.map((f) => [f.batch_id, f]));
   const mergeByBatch = new Map(merges.map((m) => [m.source_batch_id, m]));
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-      <div className="px-5 py-3 border-b border-gray-200 bg-gray-50 flex items-center gap-2">
+    <div className="si-card">
+      <div className="px-5 py-3 border-b border-gray-200 bg-baldor-cream/60 flex items-center gap-2">
         <Files className="w-4 h-4 text-gray-500" />
         <h2 className="font-semibold text-gray-900">Upload history</h2>
         <span className="text-xs text-gray-500">({batches.length})</span>
@@ -381,10 +382,14 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
   );
 }
 
-function toneClass(tone: string): string {
+function toneClass(tone: 'green' | 'amber' | 'gray'): string {
   switch (tone) {
     case 'green': return 'bg-green-50 border-green-200 text-[#2E7D32]';
     case 'amber': return 'bg-amber-50 border-amber-200 text-amber-900';
-    default: return 'bg-gray-50 border-gray-200 text-gray-700';
+    case 'gray': return 'bg-gray-50 border-gray-200 text-gray-700';
+    default: {
+      const _exhaustive: never = tone;
+      return _exhaustive;
+    }
   }
 }

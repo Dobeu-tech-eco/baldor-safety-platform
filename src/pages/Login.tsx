@@ -33,21 +33,21 @@ export default function Login() {
   const errorDescribedBy = error ? LOGIN_ERROR_ID : undefined;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#0f1419] to-[#1a2b1f] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-baldor-ink via-baldor-ink to-[#1a2b1f] flex flex-col">
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-lg bg-[#006838] flex items-center justify-center">
-              <Shield className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-baldor-primary flex items-center justify-center">
+              <Shield className="w-7 h-7 text-white" aria-hidden="true" />
             </div>
             <div>
               <div className="text-white font-bold text-xl tracking-tight">BALDOR</div>
-              <div className="text-[#8DC63F] text-xs tracking-widest uppercase">Safety Insights</div>
+              <div className="text-baldor-lime text-xs tracking-widest uppercase">Safety Insights</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-2xl p-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Sign in</h1>
+          <div className="bg-white rounded-xl shadow-2xl p-8">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Sign in</h1>
             <p className="text-sm text-gray-500 mb-6">Transportation Safety — Internal access only</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -59,9 +59,10 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="username"
                   aria-invalid={Boolean(error)}
                   aria-describedby={errorDescribedBy}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]"
+                  className="si-input w-full"
                 />
               </div>
               <div>
@@ -73,13 +74,14 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
+                  autoComplete="current-password"
                   aria-invalid={Boolean(error)}
                   aria-describedby={errorDescribedBy}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]"
+                  className="si-input w-full"
                 />
               </div>
               {error && (
-                <div id={LOGIN_ERROR_ID} role="alert" className="text-sm text-[#C0392B] bg-red-50 border border-red-200 rounded px-3 py-2">
+                <div id={LOGIN_ERROR_ID} role="alert" className="text-sm text-baldor-alert bg-red-50 border border-red-200 rounded-xl px-3 py-2">
                   {error}
                 </div>
               )}
@@ -87,7 +89,7 @@ export default function Login() {
                 type="submit"
                 disabled={loading}
                 aria-busy={loading}
-                className="w-full py-2.5 bg-[#006838] text-white font-semibold rounded-md hover:bg-[#00532d] disabled:opacity-50 transition-colors"
+                className="si-btn-primary w-full"
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>

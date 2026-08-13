@@ -41,7 +41,7 @@ function ToastItem({ entry, onDismiss }: { entry: ToastEntry; onDismiss: (id: nu
 
   const styles: Record<ToastKind, string> = {
     success: 'bg-green-50 border-green-300 text-[#2E7D32]',
-    error: 'bg-red-50 border-red-300 text-[#C0392B]',
+    error: 'bg-red-50 border-red-300 text-baldor-alert',
     info: 'bg-blue-50 border-blue-300 text-blue-900',
   };
   const Icon = entry.kind === 'success' ? CheckCircle2 : entry.kind === 'error' ? AlertCircle : Info;
@@ -54,8 +54,8 @@ function ToastItem({ entry, onDismiss }: { entry: ToastEntry; onDismiss: (id: nu
     >
       <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
       <span className="text-sm flex-1">{entry.text}</span>
-      <button onClick={() => onDismiss(entry.id)} className="opacity-60 hover:opacity-100">
-        <X className="w-3.5 h-3.5" />
+      <button type="button" onClick={() => onDismiss(entry.id)} aria-label="Dismiss notification" className="min-h-touch min-w-touch inline-flex items-center justify-center opacity-60 hover:opacity-100">
+        <X className="w-3.5 h-3.5" aria-hidden="true" />
       </button>
     </div>
   );

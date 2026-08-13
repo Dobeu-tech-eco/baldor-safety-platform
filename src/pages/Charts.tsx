@@ -63,39 +63,51 @@ export default function Charts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Charts</h1>
-          <p className="text-sm text-gray-500 mt-1">{chartTitle(chartId)} · {range?.label ?? 'Full data'}</p>
+          <h1 className="si-page-title">Charts</h1>
+          <p className="si-page-sub">{chartTitle(chartId)} · {range?.label ?? 'Full data'}</p>
         </div>
         <button
+          type="button"
           onClick={exportAll}
           disabled={exporting}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          className="si-btn-secondary self-start"
         >
-          <Download className="w-4 h-4" />{exporting ? 'Exporting...' : 'Export PNG'}
+          <Download className="w-4 h-4" aria-hidden="true" />{exporting ? 'Exporting...' : 'Export PNG'}
         </button>
       </div>
 
-      <form onSubmit={submitAsk} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-        <div className="flex gap-2">
-          <input value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Describe the chart you want..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]" />
-          <button type="submit" className="px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] flex items-center gap-2">
-            <Send className="w-4 h-4" />Generate
+      <form onSubmit={submitAsk} className="si-card p-4">
+        <label htmlFor="ask-chart" className="sr-only">Describe the chart you want</label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            id="ask-chart"
+            value={ask}
+            onChange={(e) => setAsk(e.target.value)}
+            placeholder="Describe the chart you want..."
+            className="si-input flex-1"
+          />
+          <button type="submit" className="si-btn-primary">
+            <Send className="w-4 h-4" aria-hidden="true" />Generate
           </button>
         </div>
         {notes.length > 0 && <div className="text-xs text-gray-500 mt-2">{notes.join(' ')}</div>}
       </form>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+      <div className="si-card p-4">
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider mr-2">Chart</span>
           {CHARTS.map((c) => (
-            <button key={c.id} onClick={() => setChartId(c.id)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                chartId === c.id ? 'bg-[#006838] text-white border-[#006838]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}>{c.label}</button>
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setChartId(c.id)}
+              aria-pressed={chartId === c.id}
+              className={`min-h-11 px-3 text-xs font-medium rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baldor-primary ${
+                chartId === c.id ? 'bg-baldor-primary text-white border-baldor-primary' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >{c.label}</button>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-200">
@@ -105,10 +117,15 @@ export default function Charts() {
             { label: 'Trailing 30', fn: trailing30 },
             { label: 'YTD', fn: ytd },
           ].map((p) => (
-            <button key={p.label} onClick={() => setRange(p.fn())}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                range?.label === p.fn().label ? 'bg-[#006838] text-white border-[#006838]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}>{p.label}</button>
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setRange(p.fn())}
+              aria-pressed={range?.label === p.fn().label}
+              className={`min-h-11 px-3 text-xs font-medium rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baldor-primary ${
+                range?.label === p.fn().label ? 'bg-baldor-primary text-white border-baldor-primary' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >{p.label}</button>
           ))}
         </div>
       </div>

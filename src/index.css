@@ -10,3 +10,30 @@ html, body, #root {
 }
 
 h1, h2, h3, h4 { line-height: 1.2; }
+
+@layer components {
+  .si-card {
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+  }
+  .si-input {
+    @apply min-h-11 px-3 border border-gray-300 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-baldor-primary focus:border-baldor-primary;
+  }
+  .si-select {
+    @apply min-h-11 px-3 border border-gray-300 rounded-xl bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-baldor-primary;
+  }
+  .si-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 min-h-11 px-4 bg-baldor-primary text-white font-semibold rounded-xl hover:bg-baldor-primary-hover disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baldor-primary focus-visible:ring-offset-2;
+  }
+  .si-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 min-h-11 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baldor-primary focus-visible:ring-offset-2;
+  }
+  .si-page-title {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight text-gray-900;
+  }
+  .si-page-sub {
+    @apply text-sm text-gray-500 mt-1;
+  }
+  .si-chip {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-baldor-lime/15 text-baldor-lime border border-baldor-lime/30;
+  }
+}
