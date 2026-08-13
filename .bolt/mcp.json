@@ -13,7 +13,7 @@
       "enabled": true
     },
     "animaapp": {
-      "enabled": true
+      "enabled": false
     },
     "shaders": {
       "enabled": true
