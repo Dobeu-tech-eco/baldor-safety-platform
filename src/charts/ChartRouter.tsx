@@ -26,4 +26,5 @@ export default function ChartRouter({ chartId, range }: { chartId: ChartId; rang
       const _exhaustive: never = chartId;
       return _exhaustive;
     }
+  }
 }
