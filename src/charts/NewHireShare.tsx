@@ -36,7 +36,7 @@ export default function NewHireShare() {
       square
       controls={
         <select value={band} onChange={(e) => setBand(parseInt(e.target.value, 10))}
-          className="text-xs border border-gray-300 rounded px-2 py-1">
+          className="field w-auto text-xs min-h-[36px]">
           {[60, 90, 180, 365].map((d) => <option key={d} value={d}>{d} days</option>)}
         </select>
       }

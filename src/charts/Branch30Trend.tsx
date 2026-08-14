@@ -36,8 +36,8 @@ export default function Branch30Trend() {
 
   return (
     <ChartCard title="Branch 30-Day Trend" caption="Last 30 days vs prior 30 days">
-      <div className="divide-y divide-gray-200">
-        <div className="grid grid-cols-12 text-xs font-semibold text-gray-600 uppercase tracking-wider py-2">
+      <div className="divide-y divide-hair">
+        <div className="grid grid-cols-12 text-xs font-semibold text-ink-muted uppercase tracking-wider py-2">
           <div className="col-span-4">Branch</div>
           <div className="col-span-2 text-right">Last 30</div>
           <div className="col-span-2 text-right">Prior 30</div>
@@ -45,15 +45,15 @@ export default function Branch30Trend() {
           <div className="col-span-2 text-center">Trend</div>
         </div>
         {rows.map((r) => {
-          const icon = r.delta > 0 ? <ArrowUp className="w-4 h-4 text-[#C0392B]" /> :
-                       r.delta < 0 ? <ArrowDown className="w-4 h-4 text-[#2E7D32]" /> :
-                       <Square className="w-4 h-4 text-gray-400" />;
+          const icon = r.delta > 0 ? <ArrowUp className="w-4 h-4 text-danger" /> :
+                       r.delta < 0 ? <ArrowDown className="w-4 h-4 text-brand-print" /> :
+                       <Square className="w-4 h-4 text-ink-muted" />;
           return (
             <div key={r.branch} className="grid grid-cols-12 items-center py-3 text-sm">
-              <div className="col-span-4 font-medium text-gray-900">{r.branch} <span className="text-gray-500 text-xs">{BRANCH_LABELS[r.branch]}</span></div>
+              <div className="col-span-4 font-medium text-ink-true">{r.branch} <span className="text-ink-muted text-xs">{BRANCH_LABELS[r.branch]}</span></div>
               <div className="col-span-2 text-right">{r.current}</div>
-              <div className="col-span-2 text-right text-gray-500">{r.prior}</div>
-              <div className={`col-span-2 text-right font-semibold ${r.delta > 0 ? 'text-[#C0392B]' : r.delta < 0 ? 'text-[#2E7D32]' : 'text-gray-500'}`}>{r.delta > 0 ? '+' : ''}{r.delta}</div>
+              <div className="col-span-2 text-right text-ink-muted">{r.prior}</div>
+              <div className={`col-span-2 text-right font-semibold ${r.delta > 0 ? 'text-danger' : r.delta < 0 ? 'text-brand-print' : 'text-ink-muted'}`}>{r.delta > 0 ? '+' : ''}{r.delta}</div>
               <div className="col-span-2 flex justify-center">{icon}</div>
             </div>
           );

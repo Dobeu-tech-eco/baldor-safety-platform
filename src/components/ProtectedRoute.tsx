@@ -5,8 +5,8 @@ export default function ProtectedRoute() {
   const { session, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500 text-sm">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="t-eyebrow text-ink-muted">Loading</div>
       </div>
     );
   }

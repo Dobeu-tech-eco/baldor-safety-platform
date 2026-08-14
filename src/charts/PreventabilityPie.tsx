@@ -29,13 +29,13 @@ export default function PreventabilityPie() {
   const total = slices.reduce((a, s) => a + s.value, 0);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
-      <h3 className="font-semibold text-gray-900 text-sm">Preventability breakdown (YTD)</h3>
-      <p className="text-xs text-gray-500 mt-0.5">Vehicle incidents by classification</p>
+    <div className="card-surface p-5">
+      <h3 className="t-headline text-lg text-ink-true">Preventability breakdown (YTD)</h3>
+      <p className="text-xs text-ink-muted mt-0.5">Vehicle incidents by classification</p>
       {total === 0 ? (
-        <div className="flex items-center justify-center h-48 text-sm text-gray-400">No data</div>
+        <div className="flex items-center justify-center h-48 text-sm text-ink-muted">No data</div>
       ) : (
-        <div className="flex items-center gap-4 mt-2">
+        <div className="flex items-center gap-4 mt-2 rounded-lg bg-cream-panel border border-hair p-3">
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={slices} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} strokeWidth={0}>

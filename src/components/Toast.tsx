@@ -40,21 +40,21 @@ function ToastItem({ entry, onDismiss }: { entry: ToastEntry; onDismiss: (id: nu
   useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
 
   const styles: Record<ToastKind, string> = {
-    success: 'bg-green-50 border-green-300 text-[#2E7D32]',
-    error: 'bg-red-50 border-red-300 text-[#C0392B]',
-    info: 'bg-blue-50 border-blue-300 text-blue-900',
+    success: 'bg-cream border-brand text-brand-print',
+    error: 'bg-cream border-danger text-danger',
+    info: 'bg-cream border-sky text-navy',
   };
   const Icon = entry.kind === 'success' ? CheckCircle2 : entry.kind === 'error' ? AlertCircle : Info;
 
   return (
     <div
-      className={`pointer-events-auto border rounded-lg shadow-lg px-4 py-3 flex items-start gap-2 transition-all duration-300 ${styles[entry.kind]} ${
+      className={`pointer-events-auto border rounded-lg shadow-paper px-4 py-3 flex items-start gap-2 transition-all duration-200 ease-out ${styles[entry.kind]} ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}
     >
       <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
       <span className="text-sm flex-1">{entry.text}</span>
-      <button onClick={() => onDismiss(entry.id)} className="opacity-60 hover:opacity-100">
+      <button type="button" onClick={() => onDismiss(entry.id)} className="opacity-60 hover:opacity-100 min-h-[24px] min-w-[24px]" aria-label="Dismiss">
         <X className="w-3.5 h-3.5" />
       </button>
     </div>

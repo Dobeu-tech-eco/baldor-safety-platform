@@ -54,8 +54,8 @@ export default function BranchWeekly({ range }: { range?: Range }) {
             {total === 0 ? (
               <div className="flex items-center justify-center h-full text-center">
                 <div>
-                  <div className="text-5xl font-bold text-[#006838]">0</div>
-                  <div className="text-sm text-gray-700 mt-2">No vehicle incidents in range</div>
+                  <div className="t-headline text-5xl text-brand-print">0</div>
+                  <div className="text-sm text-ink-muted mt-2">No vehicle incidents in range</div>
                 </div>
               </div>
             ) : (

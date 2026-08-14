@@ -51,7 +51,7 @@ export default function Charts() {
     if (!chartAreaRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toPng(chartAreaRef.current, { backgroundColor: '#ffffff', pixelRatio: 2 });
+      const dataUrl = await toPng(chartAreaRef.current, { backgroundColor: '#FAF8F3', pixelRatio: 2 });
       const link = document.createElement('a');
       link.download = `${chartTitle(chartId).replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-export.png`;
       link.href = dataUrl;
@@ -63,52 +63,63 @@ export default function Charts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Charts</h1>
-          <p className="text-sm text-gray-500 mt-1">{chartTitle(chartId)} · {range?.label ?? 'Full data'}</p>
+          <p className="t-eyebrow mb-1">{range?.label ?? 'Full data'}</p>
+          <h1 className="page-title">Charts</h1>
+          <p className="page-sub">{chartTitle(chartId)}</p>
         </div>
-        <button
-          onClick={exportAll}
-          disabled={exporting}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-        >
-          <Download className="w-4 h-4" />{exporting ? 'Exporting...' : 'Export PNG'}
+        <button type="button" onClick={exportAll} disabled={exporting} className="btn-secondary">
+          <Download className="w-4 h-4" />{exporting ? 'Exporting…' : 'Export PNG'}
         </button>
       </div>
 
-      <form onSubmit={submitAsk} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-        <div className="flex gap-2">
-          <input value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Describe the chart you want..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]" />
-          <button type="submit" className="px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] flex items-center gap-2">
+      <form onSubmit={submitAsk} className="card-surface p-4">
+        <label htmlFor="chart-ask" className="sr-only">Describe the chart you want</label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            id="chart-ask"
+            value={ask}
+            onChange={(e) => setAsk(e.target.value)}
+            placeholder="Describe the chart you want..."
+            className="field flex-1"
+          />
+          <button type="submit" className="btn-lime shrink-0">
             <Send className="w-4 h-4" />Generate
           </button>
         </div>
-        {notes.length > 0 && <div className="text-xs text-gray-500 mt-2">{notes.join(' ')}</div>}
+        {notes.length > 0 && <div className="text-xs text-ink-muted mt-2">{notes.join(' ')}</div>}
       </form>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+      <div className="card-surface p-4">
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider mr-2">Chart</span>
+          <span className="t-eyebrow mr-2">Chart</span>
           {CHARTS.map((c) => (
-            <button key={c.id} onClick={() => setChartId(c.id)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                chartId === c.id ? 'bg-[#006838] text-white border-[#006838]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}>{c.label}</button>
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setChartId(c.id)}
+              className={`pill ${chartId === c.id ? 'pill-active' : ''}`}
+            >
+              {c.label}
+            </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-200">
-          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider mr-2">Range</span>
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-hair">
+          <span className="t-eyebrow mr-2">Range</span>
           {[
             { label: 'Last Week', fn: lastWeek },
             { label: 'Trailing 30', fn: trailing30 },
             { label: 'YTD', fn: ytd },
           ].map((p) => (
-            <button key={p.label} onClick={() => setRange(p.fn())}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                range?.label === p.fn().label ? 'bg-[#006838] text-white border-[#006838]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}>{p.label}</button>
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setRange(p.fn())}
+              className={`pill ${range?.label === p.fn().label ? 'pill-active' : ''}`}
+            >
+              {p.label}
+            </button>
           ))}
         </div>
       </div>

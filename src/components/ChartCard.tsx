@@ -9,7 +9,7 @@ export default function ChartCard({ title, caption, square, children, controls }
 
   async function exportPng() {
     if (!ref.current) return;
-    const dataUrl = await toPng(ref.current, { backgroundColor: square ? '#F1EFEC' : '#ffffff', pixelRatio: 2 });
+    const dataUrl = await toPng(ref.current, { backgroundColor: square ? '#F1F0EC' : '#ffffff', pixelRatio: 2 });
     const link = document.createElement('a');
     link.download = `${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`;
     link.href = dataUrl;
@@ -17,21 +17,21 @@ export default function ChartCard({ title, caption, square, children, controls }
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50">
+    <div className="card-surface overflow-hidden">
+      <div className="card-header-bar">
         <div>
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          {caption && <p className="text-xs text-gray-500 mt-0.5">{caption}</p>}
+          <h3 className="t-headline text-lg text-ink-true">{title}</h3>
+          {caption && <p className="text-xs text-ink-muted mt-0.5">{caption}</p>}
         </div>
         <div className="flex items-center gap-2">
           {controls}
-          <button onClick={exportPng} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+          <button type="button" onClick={exportPng} className="btn-secondary min-h-[36px] text-[11px] px-3">
             <Download className="w-3.5 h-3.5" />Export PNG
           </button>
         </div>
       </div>
-      <div ref={ref} className={`p-6 ${square ? 'bg-[#F1EFEC]' : 'bg-white'}`} style={square ? { aspectRatio: '1 / 1' } : undefined}>
-        {square && <h2 className="text-2xl font-extrabold text-black mb-4">{title}</h2>}
+      <div ref={ref} className={`p-6 ${square ? 'bg-cream-panel' : 'bg-white'}`} style={square ? { aspectRatio: '1 / 1' } : undefined}>
+        {square && <h2 className="t-headline text-2xl text-ink-true mb-4">{title}</h2>}
         {children}
       </div>
     </div>

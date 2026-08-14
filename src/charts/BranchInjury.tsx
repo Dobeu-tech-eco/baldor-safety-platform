@@ -38,8 +38,8 @@ export default function BranchInjury() {
             {total === 0 ? (
               <div className="flex items-center justify-center h-full text-center">
                 <div>
-                  <div className="text-5xl font-bold text-[#006838]">0</div>
-                  <div className="text-sm text-gray-700 mt-2">No injuries</div>
+                  <div className="t-headline text-5xl text-brand-print">0</div>
+                  <div className="text-sm text-ink-muted mt-2">No injuries</div>
                 </div>
               </div>
             ) : (

@@ -35,51 +35,75 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#0f1419] to-[#1a2b1f] flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-ink-brand flex flex-col">
+      <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-lg bg-[#006838] flex items-center justify-center">
-              <Shield className="w-7 h-7 text-white" />
+          <div className="flex items-center justify-center gap-3 mb-10">
+            <div className="w-14 h-14 rounded-full bg-lime flex items-center justify-center">
+              <Shield className="w-7 h-7 text-ink-brand" aria-hidden="true" />
             </div>
             <div>
-              <div className="text-white font-bold text-xl tracking-tight">BALDOR</div>
-              <div className="text-[#8DC63F] text-xs tracking-widest uppercase">Safety Insights</div>
+              <div className="t-headline text-lime text-3xl leading-none">Baldor</div>
+              <div className="t-eyebrow text-cream/70 mt-1">Safety Insights</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-2xl p-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{mode === 'first' ? 'First-time setup' : 'Sign in'}</h1>
-            <p className="text-sm text-gray-500 mb-6">Transportation Safety — Internal access only</p>
+          <div className="card-surface p-8">
+            <p className="t-eyebrow mb-2">Transportation Safety</p>
+            <h1 className="page-title text-[28px]">
+              {mode === 'first' ? 'First-time setup' : 'Sign in'}
+            </h1>
+            <p className="page-sub mb-6">Internal access only</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]" />
+                <label htmlFor="login-email" className="block text-sm font-medium text-ink-muted mb-1">Email</label>
+                <input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="username"
+                  className="field"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]" />
+                <label htmlFor="login-password" className="block text-sm font-medium text-ink-muted mb-1">Password</label>
+                <input
+                  id="login-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete={mode === 'first' ? 'new-password' : 'current-password'}
+                  className="field"
+                />
               </div>
-              {error && <div className="text-sm text-[#C0392B] bg-red-50 border border-red-200 rounded px-3 py-2">{error}</div>}
-              <button type="submit" disabled={loading}
-                className="w-full py-2.5 bg-[#006838] text-white font-semibold rounded-md hover:bg-[#00532d] disabled:opacity-50 transition-colors">
-                {loading ? 'Working...' : mode === 'first' ? 'Create account & sign in' : 'Sign in'}
+              {error && (
+                <div role="alert" className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-sm px-3 py-2">
+                  {error}
+                </div>
+              )}
+              <button type="submit" disabled={loading} className="btn-primary w-full">
+                {loading ? 'Working…' : mode === 'first' ? 'Create account & sign in' : 'Sign in'}
               </button>
             </form>
 
             <div className="mt-6 text-center">
-              <button onClick={() => { setMode(mode === 'first' ? 'signin' : 'first'); setError(''); }}
-                className="text-xs text-gray-600 hover:text-[#006838] underline">
+              <button
+                type="button"
+                onClick={() => { setMode(mode === 'first' ? 'signin' : 'first'); setError(''); }}
+                className="text-xs text-ink-muted hover:text-brand underline underline-offset-4 min-h-[44px] px-2"
+              >
                 {mode === 'first' ? 'Back to sign in' : 'First-time setup (create initial admin)'}
               </button>
             </div>
           </div>
         </div>
       </div>
-      <footer className="text-gray-500 text-[11px] py-3 text-center tracking-widest uppercase">
+      <footer className="text-cream/40 text-[11px] py-3 text-center tracking-[0.16em] uppercase">
         Confidential — Internal Use Only
       </footer>
     </div>

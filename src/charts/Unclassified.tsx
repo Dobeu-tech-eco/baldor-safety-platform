@@ -34,31 +34,31 @@ export default function Unclassified() {
       title="Unclassified Vehicle Incidents"
       caption={`${rows.length} incidents awaiting Yes/No preventability`}
       controls={
-        <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+        <button type="button" onClick={exportCsv} className="btn-secondary min-h-[36px] text-[11px] px-3">
           <Download className="w-3.5 h-3.5" />Export CSV
         </button>
       }
     >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr className="text-left text-xs uppercase tracking-wider text-gray-600">
+          <thead className="bg-cream-panel">
+            <tr className="text-left text-xs uppercase tracking-wider text-ink-muted">
               <th className="px-3 py-2">Occurrence</th><th className="px-3 py-2">Date</th><th className="px-3 py-2">Branch</th>
               <th className="px-3 py-2">Type</th><th className="px-3 py-2">Employee</th><th className="px-3 py-2">Location</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-hair">
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50">
+              <tr key={r.id} className="hover:bg-cream-panel">
                 <td className="px-3 py-2 font-mono text-xs">{r.occurrence_number}</td>
                 <td className="px-3 py-2">{r.loss_date}</td>
                 <td className="px-3 py-2">{r.branch}</td>
                 <td className="px-3 py-2">{r.incident_type}</td>
                 <td className="px-3 py-2">{r.employee}</td>
-                <td className="px-3 py-2 text-gray-600">{r.location}</td>
+                <td className="px-3 py-2 text-ink-muted">{r.location}</td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">All vehicle incidents are classified.</td></tr>}
+            {!rows.length && <tr><td colSpan={6} className="px-3 py-6 text-center text-ink-muted">All vehicle incidents are classified.</td></tr>}
           </tbody>
         </table>
       </div>

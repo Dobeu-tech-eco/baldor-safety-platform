@@ -39,33 +39,39 @@ export default function MileagePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mileage</h1>
-        <p className="text-sm text-gray-500 mt-1">Monthly miles per branch for APMM calculation</p>
+        <p className="t-eyebrow mb-1">APMM input</p>
+        <h1 className="page-title">Mileage</h1>
+        <p className="page-sub">Monthly miles per branch for APMM calculation</p>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+      <div className="card-surface p-5">
         <div className="flex gap-3 mb-5">
-          <select value={year} onChange={(e) => setYear(parseInt(e.target.value, 10))}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+          <label htmlFor="mileage-year" className="sr-only">Year</label>
+          <select id="mileage-year" value={year} onChange={(e) => setYear(parseInt(e.target.value, 10))} className="field w-auto">
             {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
-          <select value={month} onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+          <label htmlFor="mileage-month" className="sr-only">Month</label>
+          <select id="mileage-month" value={month} onChange={(e) => setMonth(parseInt(e.target.value, 10))} className="field w-auto">
             {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => <option key={m} value={i+1}>{m}</option>)}
           </select>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {BRANCH_ORDER.map((b) => (
             <div key={b}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{b}</label>
-              <input type="number" value={vals[b] ?? ''} onChange={(e) => setVals({ ...vals, [b]: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Miles" />
+              <label htmlFor={`miles-${b}`} className="block text-sm font-medium text-ink-muted mb-1">{b}</label>
+              <input
+                id={`miles-${b}`}
+                type="number"
+                value={vals[b] ?? ''}
+                onChange={(e) => setVals({ ...vals, [b]: e.target.value })}
+                className="field"
+                placeholder="Miles"
+              />
             </div>
           ))}
         </div>
-        <button onClick={save} disabled={saving}
-          className="mt-5 px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] disabled:opacity-50">
-          {saving ? 'Saving...' : 'Save mileage'}
+        <button type="button" onClick={save} disabled={saving} className="btn-primary mt-5">
+          {saving ? 'Saving…' : 'Save mileage'}
         </button>
       </div>
     </div>

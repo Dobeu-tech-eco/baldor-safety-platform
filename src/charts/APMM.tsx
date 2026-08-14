@@ -51,7 +51,7 @@ export default function APMM() {
       title="Accidents per Million Miles"
       caption="Stacked branch counts with APMM line"
       controls={
-        <label className="flex items-center gap-1.5 text-xs text-gray-700">
+        <label className="flex items-center gap-1.5 text-xs text-ink-muted">
           <input type="checkbox" checked={dotOnly} onChange={(e) => setDotOnly(e.target.checked)} />
           DOT recordable only
         </label>
@@ -59,7 +59,7 @@ export default function APMM() {
     >
       <ResponsiveContainer width="100%" height={380}>
         <ComposedChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E4E2DB" />
           <XAxis dataKey="month" tick={{ fontSize: 12 }} />
           <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
           <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />

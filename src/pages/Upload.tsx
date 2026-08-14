@@ -134,15 +134,13 @@ export default function UploadPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Upload incident export</h1>
-          <p className="text-sm text-gray-500 mt-1">XLSX or CSV. Duplicate files and overlapping rows are detected automatically.</p>
+          <p className="t-eyebrow mb-1">Ingest</p>
+          <h1 className="page-title">Upload incident export</h1>
+          <p className="page-sub">XLSX or CSV. Duplicate files and overlapping rows are detected automatically.</p>
         </div>
-        <button
-          onClick={loadHistory}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-        >
+        <button type="button" onClick={loadHistory} className="btn-secondary">
           <RefreshCw className={`w-3.5 h-3.5 ${historyLoading ? 'animate-spin' : ''}`} />
           {lastSync ? `Synced ${format(lastSync, 'p')}` : 'Sync'}
         </button>
@@ -152,35 +150,34 @@ export default function UploadPage() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
-        className={`bg-white border-2 border-dashed rounded-lg p-10 text-center transition-colors ${
-          dragOver ? 'border-[#006838] bg-green-50' : 'border-gray-300 hover:border-[#006838]'
+        className={`bg-cream-panel border-2 border-dashed rounded-lg p-10 text-center transition-colors ${
+          dragOver ? 'border-brand bg-lime/10' : 'border-hair hover:border-brand'
         }`}
       >
-        <UploadIcon className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+        <UploadIcon className="w-10 h-10 text-ink-muted mx-auto mb-3" />
         <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-        <button onClick={() => inputRef.current?.click()}
-          className="px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d]">Choose file</button>
-        <p className="text-xs text-gray-500 mt-3">
+        <button type="button" onClick={() => inputRef.current?.click()} className="btn-primary">Choose file</button>
+        <p className="text-xs text-ink-muted mt-3">
           {file ? `${file.name} (${(file.size / 1024).toFixed(1)} KB)` : 'Drag a file here or click to browse'}
         </p>
         {fileHash && (
-          <p className="text-[10px] text-gray-400 mt-1 font-mono">SHA-256 {fileHash.slice(0, 16)}…</p>
+          <p className="text-[10px] text-ink-muted mt-1 font-mono">SHA-256 {fileHash.slice(0, 16)}…</p>
         )}
       </div>
 
       {notice && <NoticeBanner notice={notice} />}
 
       {duplicateFile && stage === 'reviewing' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start gap-3">
-          <ShieldAlert className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
+        <div className="bg-gold/10 border border-gold/40 rounded-md p-4 flex items-start gap-3">
+          <ShieldAlert className="w-5 h-5 text-gold mt-0.5 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-900">Duplicate file detected</p>
-            <p className="text-xs text-amber-800 mt-1">
+            <p className="text-sm font-medium text-ink-true">Duplicate file detected</p>
+            <p className="text-xs text-ink-muted mt-1">
               Identical content was uploaded as "{duplicateFile.filename}" on {format(new Date(duplicateFile.uploaded_at), 'PPp')}.
               Re-committing will be deduplicated row-by-row.
             </p>
-            <label className="flex items-center gap-2 mt-2 text-xs text-amber-900">
+            <label className="flex items-center gap-2 mt-2 text-xs text-ink-true">
               <input type="checkbox" checked={overrideDup} onChange={(e) => setOverrideDup(e.target.checked)} />
               I understand, proceed with merge anyway
             </label>
@@ -205,10 +202,10 @@ export default function UploadPage() {
 
 function NoticeBanner({ notice }: { notice: NonNullable<Notice> }) {
   const styles: Record<string, string> = {
-    info: 'bg-blue-50 border-blue-200 text-blue-900',
-    success: 'bg-green-50 border-green-200 text-[#2E7D32]',
-    warning: 'bg-amber-50 border-amber-200 text-amber-900',
-    error: 'bg-red-50 border-red-200 text-[#C0392B]',
+    info: 'bg-sky/10 border-sky/40 text-navy',
+    success: 'bg-brand/10 border-brand/30 text-brand-print',
+    warning: 'bg-gold/10 border-gold/40 text-ink-true',
+    error: 'bg-danger/10 border-danger/30 text-danger',
   };
   const Icon = notice.kind === 'success' ? CheckCircle2 : notice.kind === 'error' ? AlertCircle : notice.kind === 'warning' ? ShieldAlert : FileText;
   return (
@@ -236,21 +233,20 @@ function PreviewPanel({
     { label: 'Classifications restored', value: cleaned.classificationsRestored, tone: 'gray' },
   ];
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-      <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
+    <div className="card-surface">
+      <div className="px-5 py-4 border-b border-hair bg-cream-panel">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h2 className="font-semibold text-gray-900">Merge preview</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{cleaned.rows.length} rows parsed from upload</p>
+            <h2 className="t-headline text-lg text-ink-true">Merge preview</h2>
+            <p className="text-xs text-ink-muted mt-0.5">{cleaned.rows.length} rows parsed from upload</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <label className="flex items-center gap-2 text-xs text-gray-700">
+            <label className="flex items-center gap-2 text-xs text-ink-muted">
               <input type="checkbox" checked={acceptConflicts} onChange={(e) => setAcceptConflicts(e.target.checked)} />
               Overwrite conflicting rows ({cleaned.conflictCount})
             </label>
-            <button onClick={onCommit} disabled={committing}
-              className="flex items-center gap-2 px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] disabled:opacity-50">
-              <GitMerge className="w-4 h-4" />{committing ? 'Merging...' : 'Commit merge'}
+            <button type="button" onClick={onCommit} disabled={committing} className="btn-primary">
+              <GitMerge className="w-4 h-4" />{committing ? 'Merging…' : 'Commit merge'}
             </button>
           </div>
         </div>
@@ -265,8 +261,8 @@ function PreviewPanel({
       </div>
       <div className="overflow-x-auto max-h-[480px]">
         <table className="w-full text-xs">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr className="text-left text-[10px] uppercase tracking-wider text-gray-600">
+          <thead className="bg-cream-panel sticky top-0">
+            <tr className="text-left text-[10px] uppercase tracking-wider text-ink-muted">
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Occurrence</th>
               <th className="px-3 py-2">Branch</th>
@@ -275,11 +271,11 @@ function PreviewPanel({
               <th className="px-3 py-2">Preventable</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-hair">
             {cleaned.classified.slice(0, 300).map((c, i) => (
               <tr key={i} className={
-                c.classification === 'exact-duplicate' ? 'bg-gray-50' :
-                c.classification === 'conflict' ? 'bg-amber-50' : ''
+                c.classification === 'exact-duplicate' ? 'bg-cream-panel' :
+                c.classification === 'conflict' ? 'bg-gold/10' : ''
               }>
                 <td className="px-3 py-1.5"><StatusBadge classification={c.classification} /></td>
                 <td className="px-3 py-1.5 font-mono">{c.row.occurrence_number}</td>
@@ -292,7 +288,7 @@ function PreviewPanel({
           </tbody>
         </table>
         {cleaned.classified.length > 300 && (
-          <p className="text-[11px] text-gray-500 px-3 py-2 border-t border-gray-200">
+          <p className="text-[11px] text-ink-muted px-3 py-2 border-t border-hair">
             Showing first 300 of {cleaned.classified.length} rows.
           </p>
         )}
@@ -303,9 +299,9 @@ function PreviewPanel({
 
 function StatusBadge({ classification }: { classification: 'new' | 'exact-duplicate' | 'conflict' }) {
   const map = {
-    'new': { label: 'New', cls: 'bg-green-100 text-[#2E7D32]' },
-    'exact-duplicate': { label: 'Duplicate', cls: 'bg-gray-200 text-gray-700' },
-    'conflict': { label: 'Conflict', cls: 'bg-amber-100 text-amber-900' },
+    'new': { label: 'New', cls: 'bg-brand/10 text-brand-print' },
+    'exact-duplicate': { label: 'Duplicate', cls: 'bg-cream-panel text-ink-muted' },
+    'conflict': { label: 'Conflict', cls: 'bg-gold/20 text-ink-true' },
   } as const;
   const m = map[classification];
   return <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${m.cls}`}>{m.label}</span>;
@@ -315,19 +311,21 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
   const fileByBatch = new Map(files.map((f) => [f.batch_id, f]));
   const mergeByBatch = new Map(merges.map((m) => [m.source_batch_id, m]));
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-      <div className="px-5 py-3 border-b border-gray-200 bg-gray-50 flex items-center gap-2">
-        <Files className="w-4 h-4 text-gray-500" />
-        <h2 className="font-semibold text-gray-900">Upload history</h2>
-        <span className="text-xs text-gray-500">({batches.length})</span>
+    <div className="card-surface">
+      <div className="card-header-bar">
+        <div className="flex items-center gap-2">
+          <Files className="w-4 h-4 text-ink-muted" />
+          <h2 className="t-headline text-lg text-ink-true">Upload history</h2>
+          <span className="text-xs text-ink-muted">({batches.length})</span>
+        </div>
       </div>
       {batches.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-gray-500">No uploads yet.</div>
+        <div className="px-5 py-8 text-center text-sm text-ink-muted">No uploads yet.</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50">
-              <tr className="text-left text-[10px] uppercase tracking-wider text-gray-600">
+          <table className="w-full text-xs data-table">
+            <thead>
+              <tr className="text-left">
                 <th className="px-3 py-2">File</th>
                 <th className="px-3 py-2">Uploaded</th>
                 <th className="px-3 py-2 text-right">Rows</th>
@@ -336,17 +334,17 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
                 <th className="px-3 py-2">Hash</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-hair">
               {batches.map((b) => {
                 const f = fileByBatch.get(b.id);
                 const m = mergeByBatch.get(b.id);
                 return (
                   <tr key={b.id}>
-                    <td className="px-3 py-2 font-medium text-gray-900 flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-gray-400" />
+                    <td className="px-3 py-2 font-medium text-ink-true flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-ink-muted" />
                       {b.filename}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="px-3 py-2 text-ink-muted">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {format(new Date(b.uploaded_at), 'PP p')}
@@ -356,18 +354,18 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
                     <td className="px-3 py-2 text-right font-mono">{b.follow_on_removed}</td>
                     <td className="px-3 py-2">
                       {m ? (
-                        <span className="inline-flex items-center gap-1 text-amber-800 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                        <span className="inline-flex items-center gap-1 text-ink-true bg-gold/10 border border-gold/40 rounded px-1.5 py-0.5">
                           <GitMerge className="w-3 h-3" />
                           {m.duplicate_rows_removed} dup removed · {m.new_rows_added} new
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[#2E7D32] bg-green-50 border border-green-200 rounded px-1.5 py-0.5">
+                        <span className="inline-flex items-center gap-1 text-brand-print bg-brand/10 border border-brand/30 rounded px-1.5 py-0.5">
                           <CheckCircle2 className="w-3 h-3" />
                           Clean
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-mono text-gray-400 text-[10px]">
+                    <td className="px-3 py-2 font-mono text-ink-muted text-[10px]">
                       {f?.file_hash.slice(0, 12) ?? '—'}
                     </td>
                   </tr>
@@ -383,8 +381,8 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
 
 function toneClass(tone: string): string {
   switch (tone) {
-    case 'green': return 'bg-green-50 border-green-200 text-[#2E7D32]';
-    case 'amber': return 'bg-amber-50 border-amber-200 text-amber-900';
-    default: return 'bg-gray-50 border-gray-200 text-gray-700';
+    case 'green': return 'bg-brand/10 border-brand/30 text-brand-print';
+    case 'amber': return 'bg-gold/10 border-gold/40 text-ink-true';
+    default: return 'bg-cream-panel border-hair text-ink-muted';
   }
 }

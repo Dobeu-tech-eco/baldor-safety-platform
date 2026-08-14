@@ -38,7 +38,7 @@ export default function NetworkYoYStack() {
       title="Network YoY Stacked"
       caption="Monthly preventable / non-preventable totals with prior year overlay"
       controls={
-        <label className="flex items-center gap-1.5 text-xs text-gray-700">
+        <label className="flex items-center gap-1.5 text-xs text-ink-muted">
           <input type="checkbox" checked={foldPending} onChange={(e) => setFoldPending(e.target.checked)} />
           Fold pending into preventable
         </label>
@@ -46,7 +46,7 @@ export default function NetworkYoYStack() {
     >
       <ResponsiveContainer width="100%" height={380}>
         <ComposedChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#E4E2DB" />
           <XAxis dataKey="month" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip />
