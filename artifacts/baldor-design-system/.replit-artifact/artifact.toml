@@ -1,0 +1,19 @@
+kind = "design-system"
+previewPath = "/baldor-design-system/"
+title = "Baldor Specialty Foods Design System"
+description = "Editorial and confident: condensed poster type, cream paper surface, deep forest greens, and lime accent. The visual language for Baldor's marketing, driver communications, signage, and documents."
+version = "1.0.0"
+id = "artifacts/baldor-design-system"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/baldor-design-system/" ]
+localPort = 24190
+
+[services.development]
+run = "pnpm --filter @workspace/baldor-design-system run dev"
+
+[services.env]
+PORT = "24190"
+BASE_PATH = "/baldor-design-system/"
