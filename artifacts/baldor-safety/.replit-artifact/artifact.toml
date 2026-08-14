@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Baldor Safety Insights"
+description = "A safety incident tracking and analytics dashboard for Baldor fleet operations. It lets administrators upload incident reports, track OSHA/DOT recordable events, visualize safety trends across branches, manage mileage data, and control user access — all in one secure web interface."
+version = "1.0.0"
+id = "artifacts/baldor-safety"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23781
+
+[services.development]
+run = "pnpm --filter @workspace/baldor-safety run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/baldor-safety", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/baldor-safety/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23781"
+BASE_PATH = "/"
