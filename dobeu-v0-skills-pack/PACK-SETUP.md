@@ -15,6 +15,31 @@
 
 # Using it in v0.app
 
+## Import via ZIP (team or personal skills)
+
+v0 expects **each skill as a top-level folder** in the ZIP, with a `SKILL.md` inside
+each folder. It does **not** accept a nested `skills/` wrapper or extra folders like
+`manifest/`.
+
+Use the v0-specific export (not `dobeu-v0-skills-pack.zip`):
+
+```bash
+python3 tools/export_v0_zip.py
+```
+
+Upload **`dobeu-v0-skills-pack-v0.zip`** in v0 → Settings → Skills → Import skills from ZIP.
+
+Expected layout inside the ZIP:
+
+```
+brand-guidelines/SKILL.md
+nextjs/SKILL.md
+react-best-practices/SKILL.md
+...
+```
+
+## Other ways to use skills in v0
+
 - v0 Skills menu → **Teams** section: team-shared skills for Dobeu Tech Solutions LLC
   appear here; **My skills** shows your personal ones; attach a skill to any prompt.
 - If a pack skill does not appear under Teams automatically, use **Explore skills** →
