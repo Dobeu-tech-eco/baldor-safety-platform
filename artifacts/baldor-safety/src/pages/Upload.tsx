@@ -188,7 +188,7 @@ export default function UploadPage() {
         </div>
       )}
 
-      {cleaned && stage === 'reviewing' && (
+      {cleaned && (stage === 'reviewing' || stage === 'committing') && (
         <PreviewPanel
           cleaned={cleaned}
           acceptConflicts={acceptConflicts}

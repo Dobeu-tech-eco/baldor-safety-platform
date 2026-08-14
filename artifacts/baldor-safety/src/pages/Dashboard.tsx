@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, HeartPulse, AlertTriangle, FileCheck2, Send, RefreshCw, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -38,7 +38,7 @@ export default function Dashboard() {
     navigate(`/charts?q=${encodeURIComponent(ask)}`);
   }
 
-  const Card = ({ icon, label, value, accent }: { icon: JSX.Element; label: string; value: number; accent: string }) => (
+  const Card = ({ icon, label, value, accent }: { icon: ReactElement; label: string; value: number; accent: string }) => (
     <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div>

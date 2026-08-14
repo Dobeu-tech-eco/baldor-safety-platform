@@ -1,0 +1,19 @@
+kind = "design-system"
+previewPath = "/dobeu-design-system/"
+title = "Dobeu Design System"
+description = "The single source of truth for the entire Dobeu Tech Solutions ecosystem. One mark, one palette, one type family that flexes across 17+ sub-brand domains — consumer review sites, developer portals, SaaS dashboards, marketplaces, and logistics tools. Dark-first for developer products, light-first for consumer. Built on warm indigo + amber with soft rounded corners and The Overlap logo motif."
+version = "1.0.0"
+id = "artifacts/dobeu-design-system"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/dobeu-design-system/" ]
+localPort = 21857
+
+[services.development]
+run = "pnpm --filter @workspace/dobeu-design-system run dev"
+
+[services.env]
+PORT = "21857"
+BASE_PATH = "/dobeu-design-system/"

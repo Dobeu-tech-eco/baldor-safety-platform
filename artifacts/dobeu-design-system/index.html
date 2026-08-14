@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!--
+  Preview entry for the Dobeu Design System. Renders a living style guide that
+  showcases the tokens (tokens.json) and the current component library.
+  Fonts are loaded as non-blocking <link> tags (not CSS @import, which is
+  render-blocking). Only Nunito (sans) and JetBrains Mono (mono) are loaded —
+  the two families Dobeu uses. Quicksand is the declared fallback but loads
+  at OS-level; serif falls back to Georgia.
+-->
+<html lang="en" style="height: 100%">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+
+    <title>Dobeu Design System</title>
+    <meta name="description" content="Dobeu Design System — single source of truth for the Dobeu Tech Solutions ecosystem." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Nunito (400/500/600/700/800) + JetBrains Mono (400/500/700) from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" media="print" onload="this.media='all'"
+          href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap">
+    <noscript>
+      <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap">
+    </noscript>
+  </head>
+  <body style="height: 100%; margin: 0">
+    <div id="root" style="height: 100%"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

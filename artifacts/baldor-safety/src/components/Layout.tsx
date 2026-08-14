@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Shield, Upload, BarChart3, Database, Gauge, Settings, LogOut, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -6,7 +7,7 @@ export default function Layout() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const navItem = (to: string, icon: JSX.Element, label: string) => (
+  const navItem = (to: string, icon: ReactElement, label: string) => (
     <NavLink to={to}
       className={({ isActive }) =>
         `flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
