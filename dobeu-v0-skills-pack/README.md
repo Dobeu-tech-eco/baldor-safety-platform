@@ -6,6 +6,8 @@ Install via pack: `npx skills add https://skills.sh/p/<pack-id>` (after pack cre
 Or install this repo: `npx skills add dobeutech/dobeu-v0-skills-pack`
 Or install into Cursor globally: `python3 tools/install_to_cursor.py`
 
+For **v0.app ZIP import**, build and upload `dobeu-v0-skills-pack-v0.zip` (skill folders at ZIP root — see PACK-SETUP.md). Do not use `dobeu-v0-skills-pack.zip` for v0; that archive is for skills.sh/GitHub and nests skills under `skills/`.
+
 ## Included skills (42)
 
 - **access-protected-vercel-deployment** — Access and test Vercel deployments protected by Vercel Authentication, SSO, or Deployment Protection. Use when curl, agent-browser, Playwright, or another autom
