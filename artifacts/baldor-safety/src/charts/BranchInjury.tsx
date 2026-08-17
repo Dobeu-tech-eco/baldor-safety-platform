@@ -3,15 +3,15 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Respons
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
 import { BRANCH_ORDER, BRANCH_LABELS } from '../lib/branches';
-import { supabase, Incident } from '../lib/supabase';
+import { getIncidents, type Incident } from '../lib/api';
 
 export default function BranchInjury() {
   const [data, setData] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false).eq('is_injury', true);
-      const incidents = (inc as Incident[]) || [];
+      const inc = await getIncidents({ isInjury: true });
+      const incidents: Incident[] = inc;
       const out: Record<string, any[]> = {};
       BRANCH_ORDER.forEach((b) => {
         const types = new Map<string, { count: number; osha: number }>();

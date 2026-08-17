@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { supabase, Override, SnowEvent, AppUser } from '../lib/supabase';
+import { api, type Override, type SnowEvent, type AppUser } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 export default function Settings() {
@@ -16,32 +16,58 @@ export default function Settings() {
   const [snowYear, setSnowYear] = useState(2026);
   const [snowMonth, setSnowMonth] = useState(1);
   const [snowCount, setSnowCount] = useState(0);
+  const [newEmail, setNewEmail] = useState('');
 
   async function load() {
-    const { data: o } = await supabase.from('overrides').select('*').order('occurrence_number');
-    const { data: s } = await supabase.from('snow_events').select('*').order('year').order('month');
-    const { data: u } = await supabase.from('app_users').select('*').order('email');
-    setOverrides((o as Override[]) || []);
-    setSnow((s as SnowEvent[]) || []);
-    setUsers((u as AppUser[]) || []);
+    const [o, s] = await Promise.all([
+      api<Override[]>('/overrides'),
+      api<SnowEvent[]>('/snow-events'),
+    ]);
+    setOverrides(o);
+    setSnow(s);
+    if (profile?.is_admin) {
+      try {
+        setUsers(await api<AppUser[]>('/users'));
+      } catch {
+        setUsers([]);
+      }
+    }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [profile?.is_admin]);
 
   async function addOverride() {
     if (!ovOcc.trim()) return;
-    await supabase.from('overrides').upsert({ occurrence_number: ovOcc.trim(), preventable: ovVal, note: ovNote }, { onConflict: 'occurrence_number' });
+    await api('/overrides', {
+      method: 'POST',
+      body: JSON.stringify({ occurrence_number: ovOcc.trim(), preventable: ovVal, note: ovNote }),
+    });
     setOvOcc(''); setOvNote(''); load();
   }
-  async function removeOverride(id: string) { await supabase.from('overrides').delete().eq('id', id); load(); }
+  async function removeOverride(id: string) { await api(`/overrides/${id}`, { method: 'DELETE' }); load(); }
 
   async function addSnow() {
-    await supabase.from('snow_events').insert({ year: snowYear, month: snowMonth, attributable_count: snowCount, note: '' });
+    await api('/snow-events', {
+      method: 'POST',
+      body: JSON.stringify({ year: snowYear, month: snowMonth, attributable_count: snowCount, note: '' }),
+    });
     setSnowCount(0); load();
   }
-  async function removeSnow(id: string) { await supabase.from('snow_events').delete().eq('id', id); load(); }
+  async function removeSnow(id: string) { await api(`/snow-events/${id}`, { method: 'DELETE' }); load(); }
 
   async function toggleAdmin(u: AppUser) {
-    await supabase.from('app_users').update({ is_admin: !u.is_admin }).eq('id', u.id);
+    await api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ is_admin: !u.is_admin }) });
+    load();
+  }
+
+  async function addAllowedEmail() {
+    if (!newEmail.trim()) return;
+    await api('/users', { method: 'POST', body: JSON.stringify({ email: newEmail.trim() }) });
+    setNewEmail('');
+    load();
+  }
+
+  async function toggleAllowed(u: AppUser) {
+    await api(`/users/${u.id}`, { method: 'PATCH', body: JSON.stringify({ allowlisted: !u.allowlisted }) });
     load();
   }
 
@@ -108,18 +134,34 @@ export default function Settings() {
       {profile?.is_admin && (
         <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
           <div className="px-5 py-3 border-b border-gray-200 bg-gray-50">
-            <h2 className="font-semibold text-gray-900">Users</h2>
+            <h2 className="font-semibold text-gray-900">Users & access list</h2>
           </div>
-          <div className="divide-y divide-gray-200">
+          <div className="p-5 pb-0 flex gap-2">
+            <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Email to allow"
+              className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-sm" />
+            <button onClick={addAllowedEmail}
+              className="px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] text-sm">Allow access</button>
+          </div>
+          <div className="divide-y divide-gray-200 mt-4">
             {users.map((u) => (
               <div key={u.id} className="px-5 py-3 flex items-center justify-between text-sm">
                 <div>
                   <div className="font-medium text-gray-900">{u.email}</div>
-                  {u.is_admin && <div className="text-xs text-[#8DC63F]">Admin</div>}
+                  <div className="text-xs">
+                    {u.is_admin && <span className="text-[#8DC63F] mr-2">Admin</span>}
+                    {u.allowlisted
+                      ? <span className="text-gray-500">Access granted</span>
+                      : <span className="text-amber-600">Access pending</span>}
+                  </div>
                 </div>
-                <button onClick={() => toggleAdmin(u)} className="text-xs px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
-                  {u.is_admin ? 'Revoke admin' : 'Make admin'}
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => toggleAllowed(u)} className="text-xs px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+                    {u.allowlisted ? 'Revoke access' : 'Grant access'}
+                  </button>
+                  <button onClick={() => toggleAdmin(u)} className="text-xs px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+                    {u.is_admin ? 'Revoke admin' : 'Make admin'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

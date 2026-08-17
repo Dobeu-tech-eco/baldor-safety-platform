@@ -10,7 +10,7 @@ import {
 } from '../lib/ingest';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../components/Toast';
-import { supabase, UploadFile, UploadBatch, DatasetMerge } from '../lib/supabase';
+import { api, type UploadFile, type UploadBatch, type DatasetMerge } from '../lib/api';
 
 type Stage = 'idle' | 'parsing' | 'reviewing' | 'committing' | 'done';
 
@@ -39,14 +39,10 @@ export default function UploadPage() {
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
-    const [b, f, m] = await Promise.all([
-      supabase.from('upload_batches').select('*').order('uploaded_at', { ascending: false }).limit(50),
-      supabase.from('upload_files').select('*').order('uploaded_at', { ascending: false }).limit(50),
-      supabase.from('dataset_merges').select('*').order('performed_at', { ascending: false }).limit(50),
-    ]);
-    setBatches((b.data as UploadBatch[]) ?? []);
-    setFiles((f.data as UploadFile[]) ?? []);
-    setMerges((m.data as DatasetMerge[]) ?? []);
+    const history = await api<{ batches: UploadBatch[]; files: UploadFile[]; merges: DatasetMerge[] }>('/upload-history');
+    setBatches(history.batches);
+    setFiles(history.files);
+    setMerges(history.merges);
     setLastSync(new Date());
     setHistoryLoading(false);
   }, []);

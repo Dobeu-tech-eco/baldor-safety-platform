@@ -1,67 +1,65 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase, AppUser } from './supabase';
-import type { Session, User } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { useAuth as useReplitAuth, type AuthUser as ReplitUser } from '@workspace/replit-auth-web';
+import { api, loginUrl, logoutUrl, type AppUser } from './api';
 
 type AuthContextValue = {
-  session: Session | null;
-  user: User | null;
+  user: ReplitUser | null;
   profile: AppUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  isAuthenticated: boolean;
+  signIn: () => void;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const { user, isLoading, isAuthenticated } = useReplitAuth();
   const [profile, setProfile] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) loadProfile(data.session.user);
-      else setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
-      setSession(sess);
-      if (sess?.user) {
-        (async () => { await loadProfile(sess.user); })();
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
-    return () => sub.subscription.unsubscribe();
+  const refreshProfile = useCallback(async () => {
+    try {
+      setProfile(await api<AppUser>('/users/me'));
+    } catch {
+      setProfile(null);
+    }
   }, []);
 
-  async function loadProfile(u: User) {
-    const { data } = await supabase.from('app_users').select('*').eq('id', u.id).maybeSingle();
-    if (!data) {
-      const { count } = await supabase.from('app_users').select('id', { count: 'exact', head: true });
-      const isFirst = (count ?? 0) === 0;
-      const { data: created } = await supabase.from('app_users').insert({ id: u.id, email: u.email ?? '', is_admin: isFirst }).select().maybeSingle();
-      setProfile(created);
-    } else {
-      setProfile(data);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setProfile(null);
+      return;
     }
-    setLoading(false);
-  }
+    let cancelled = false;
+    setProfileLoading(true);
+    api<AppUser>('/users/me')
+      .then((p) => { if (!cancelled) setProfile(p); })
+      .catch(() => { if (!cancelled) setProfile(null); })
+      .finally(() => { if (!cancelled) setProfileLoading(false); });
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return {};
+  function signIn() {
+    window.location.href = loginUrl(window.location.pathname || '/');
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
-    setProfile(null);
+    window.location.href = logoutUrl();
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading: isLoading || profileLoading,
+        isAuthenticated,
+        signIn,
+        signOut,
+        refreshProfile,
+      }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowUp, ArrowDown, Square } from 'lucide-react';
 import ChartCard from '../components/ChartCard';
 import { BRANCH_ORDER, BRANCH_LABELS } from '../lib/branches';
-import { supabase, Incident } from '../lib/supabase';
+import { getIncidents, type Incident } from '../lib/api';
 import { addDays } from 'date-fns';
 
 type Row = { branch: string; current: number; prior: number; delta: number };
@@ -12,8 +12,8 @@ export default function Branch30Trend() {
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false);
-      const incidents = (inc as Incident[]) || [];
+      const inc = await getIncidents();
+      const incidents: Incident[] = inc;
       const today = new Date();
       const cutCurrent = addDays(today, -30);
       const cutPrior = addDays(today, -60);

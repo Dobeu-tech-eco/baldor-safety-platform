@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, Mileage } from '../lib/supabase';
+import { api, type Mileage } from '../lib/api';
 import { BRANCH_ORDER } from '../lib/branches';
 
 export default function MileagePage() {
@@ -10,11 +10,11 @@ export default function MileagePage() {
   const [saving, setSaving] = useState(false);
 
   async function load() {
-    const { data } = await supabase.from('mileage').select('*').eq('year', year).eq('month', month);
-    setRows((data as Mileage[]) || []);
+    const data = await api<Mileage[]>(`/mileage?year=${year}&month=${month}`);
+    setRows(data);
     const v: Record<string, string> = {};
     BRANCH_ORDER.forEach((b) => {
-      const r = (data as Mileage[] || []).find((x) => x.branch === b);
+      const r = data.find((x) => x.branch === b);
       v[b] = r ? String(r.miles) : '';
     });
     setVals(v);
@@ -27,11 +27,7 @@ export default function MileagePage() {
     const payload = BRANCH_ORDER.map((b) => ({
       branch: b, year, month, miles: parseInt(vals[b] || '0', 10) || 0,
     }));
-    for (const p of payload) {
-      const existing = rows.find((r) => r.branch === p.branch);
-      if (existing) await supabase.from('mileage').update({ miles: p.miles }).eq('id', existing.id);
-      else await supabase.from('mileage').insert(p);
-    }
+    await api('/mileage', { method: 'PUT', body: JSON.stringify(payload) });
     setSaving(false);
     load();
   }

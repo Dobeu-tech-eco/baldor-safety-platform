@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
-import { supabase, Incident } from '../lib/supabase';
+import { api, getIncidents, type Incident } from '../lib/api';
 
 export default function Data() {
   const [rows, setRows] = useState<Incident[]>([]);
@@ -9,18 +9,22 @@ export default function Data() {
   const [includeFollowons, setIncludeFollowons] = useState(false);
 
   async function load() {
-    let q = supabase.from('incidents').select('*').order('loss_date', { ascending: false }).limit(500);
-    if (!includeFollowons) q = q.eq('is_followon', false);
-    if (branch) q = q.eq('branch', branch);
-    const { data } = await q;
-    setRows((data as Incident[]) || []);
+    const data = await getIncidents({
+      includeFollowons,
+      branch: branch || undefined,
+      order: 'desc',
+      limit: 500,
+    });
+    setRows(data);
   }
 
   useEffect(() => { load(); }, [branch, includeFollowons]);
 
   async function setPreventable(occ: string, val: string) {
-    await supabase.from('overrides').upsert({ occurrence_number: occ, preventable: val, note: 'Manual override' }, { onConflict: 'occurrence_number' });
-    await supabase.from('incidents').update({ preventable: val, updated_at: new Date().toISOString() }).eq('occurrence_number', occ);
+    await api(`/incidents/${encodeURIComponent(occ)}/preventable`, {
+      method: 'PUT',
+      body: JSON.stringify({ preventable: val, note: 'Manual override' }),
+    });
     load();
   }
 

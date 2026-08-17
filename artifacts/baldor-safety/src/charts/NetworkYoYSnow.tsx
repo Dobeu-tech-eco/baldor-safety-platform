@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
-import { supabase, Incident, SnowEvent } from '../lib/supabase';
+import { api, getIncidents, type Incident, type SnowEvent } from '../lib/api';
 import { classify } from '../lib/queries';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -12,10 +12,10 @@ export default function NetworkYoYSnow() {
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false).eq('is_injury', false);
-      const { data: snow } = await supabase.from('snow_events').select('*');
-      const incidents = (inc as Incident[]) || [];
-      const snowEvents = (snow as SnowEvent[]) || [];
+      const inc = await getIncidents({ isInjury: false });
+      const snow = await api<SnowEvent[]>('/snow-events');
+      const incidents: Incident[] = inc;
+      const snowEvents: SnowEvent[] = snow;
       const rows = MONTHS.map((m, idx) => {
         const month = idx + 1;
         const count = (yr: number) => incidents.filter((i) => {

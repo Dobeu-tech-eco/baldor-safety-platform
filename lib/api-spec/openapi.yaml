@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: Auth
+    description: Browser and mobile authentication endpoints.
+  - name: Safety
+    description: Baldor Safety Insights data endpoints.
 paths:
   /healthz:
     get:
@@ -24,7 +28,494 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          description: Relative path to redirect to after login (must start with `/`). Defaults to `/`.
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the OIDC authorization endpoint.
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: iss
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the `returnTo` path on success (defaults to `/`) or `/api/login` on failure.
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session and begin OIDC logout
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+            default: /
+      responses:
+        '302':
+          description: Redirect to the OIDC provider logout URL with a post-logout redirect back to the validated `returnTo` path.
+  /mobile-auth/token-exchange:
+    post:
+      tags: [Auth]
+      operationId: exchangeMobileAuthorizationCode
+      summary: Exchange a mobile OIDC code for a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileTokenExchangeRequest'
+      responses:
+        '200':
+          description: Session created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileTokenExchangeSuccess'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Token did not contain usable claims.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Token exchange failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /mobile-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutMobileSession
+      summary: Delete a mobile session token
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+      responses:
+        '200':
+          description: Logout processed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccess'
+  /users/me:
+    get:
+      tags: [Safety]
+      operationId: getMyProfile
+      summary: Get (and lazily provision) the caller's app profile
+      responses:
+        '200':
+          description: Profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppUser'
+  /users:
+    get:
+      tags: [Safety]
+      operationId: listUsers
+      summary: List app users (admin only)
+      responses:
+        '200':
+          description: Users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppUser'
+    post:
+      tags: [Safety]
+      operationId: allowlistEmail
+      summary: Pre-allowlist an email (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllowlistEmailRequest'
+      responses:
+        '200':
+          description: Created or updated user row.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppUser'
+  /users/{id}:
+    patch:
+      tags: [Safety]
+      operationId: updateUser
+      summary: Update a user's admin/allowlist flags (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppUser'
+  /incidents:
+    get:
+      tags: [Safety]
+      operationId: listIncidents
+      summary: Query incidents
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema: { type: string }
+        - name: to
+          in: query
+          required: false
+          schema: { type: string }
+        - name: branch
+          in: query
+          required: false
+          schema: { type: string }
+        - name: includeFollowons
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: isInjury
+          in: query
+          required: false
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: number }
+        - name: order
+          in: query
+          required: false
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        '200':
+          description: Incidents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Incident'
+  /incidents/{occurrenceNumber}/preventable:
+    put:
+      tags: [Safety]
+      operationId: setIncidentPreventable
+      summary: Set an incident's preventability (writes an override)
+      parameters:
+        - name: occurrenceNumber
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPreventableRequest'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+  /ingest/preview:
+    post:
+      tags: [Safety]
+      operationId: previewIngest
+      summary: Clean + classify parsed rows without writing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestRowsRequest'
+      responses:
+        '200':
+          description: Clean result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanResult'
+  /ingest/commit:
+    post:
+      tags: [Safety]
+      operationId: commitIngest
+      summary: Clean, dedupe, and upsert parsed rows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestCommitRequest'
+      responses:
+        '200':
+          description: Commit result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitResult'
+  /upload-files/check:
+    get:
+      tags: [Safety]
+      operationId: checkFileDuplicate
+      summary: Check whether a file hash was uploaded before
+      parameters:
+        - name: hash
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Duplicate check.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [isDuplicate]
+                properties:
+                  isDuplicate: { type: boolean }
+                  existing:
+                    oneOf:
+                      - $ref: '#/components/schemas/UploadFile'
+                      - type: 'null'
+  /upload-history:
+    get:
+      tags: [Safety]
+      operationId: getUploadHistory
+      summary: Recent upload batches, files, and merges
+      responses:
+        '200':
+          description: History.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batches, files, merges]
+                properties:
+                  batches:
+                    type: array
+                    items: { $ref: '#/components/schemas/UploadBatch' }
+                  files:
+                    type: array
+                    items: { $ref: '#/components/schemas/UploadFile' }
+                  merges:
+                    type: array
+                    items: { $ref: '#/components/schemas/DatasetMerge' }
+  /mileage:
+    get:
+      tags: [Safety]
+      operationId: listMileage
+      summary: List mileage rows
+      parameters:
+        - name: year
+          in: query
+          required: false
+          schema: { type: number }
+        - name: month
+          in: query
+          required: false
+          schema: { type: number }
+      responses:
+        '200':
+          description: Mileage.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Mileage' }
+    put:
+      tags: [Safety]
+      operationId: upsertMileage
+      summary: Bulk upsert mileage rows (by branch/year/month)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/MileageUpsertRow'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+  /overrides:
+    get:
+      tags: [Safety]
+      operationId: listOverrides
+      summary: List overrides
+      responses:
+        '200':
+          description: Overrides.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Override' }
+    post:
+      tags: [Safety]
+      operationId: upsertOverride
+      summary: Upsert an override by occurrence number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OverrideUpsertRequest'
+      responses:
+        '200':
+          description: Override.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Override'
+  /overrides/{id}:
+    delete:
+      tags: [Safety]
+      operationId: deleteOverride
+      summary: Delete an override
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+  /snow-events:
+    get:
+      tags: [Safety]
+      operationId: listSnowEvents
+      summary: List snow events
+      responses:
+        '200':
+          description: Snow events.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SnowEvent' }
+    post:
+      tags: [Safety]
+      operationId: createSnowEvent
+      summary: Create a snow event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnowEventCreateRequest'
+      responses:
+        '200':
+          description: Snow event.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnowEvent'
+  /snow-events/{id}:
+    delete:
+      tags: [Safety]
+      operationId: deleteSnowEvent
+      summary: Delete a snow event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
 components:
+  parameters:
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      description: Opaque session token — `Bearer <sid>`.
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +524,294 @@ components:
           type: string
       required:
         - status
-
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: [string, 'null']
+        firstName:
+          type: [string, 'null']
+        lastName:
+          type: [string, 'null']
+        profileImageUrl:
+          type: [string, 'null']
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        code_verifier:
+          type: string
+          minLength: 1
+        redirect_uri:
+          type: string
+          minLength: 1
+        state:
+          type: string
+          minLength: 1
+        nonce:
+          type: string
+          minLength: 1
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          const: true
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    AppUser:
+      type: object
+      required: [id, email, full_name, is_admin, allowlisted]
+      properties:
+        id: { type: string }
+        auth_user_id: { type: [string, 'null'] }
+        email: { type: string }
+        full_name: { type: string }
+        is_admin: { type: boolean }
+        allowlisted: { type: boolean }
+        created_at: { type: string }
+    Incident:
+      type: object
+      required: [id, occurrence_number]
+      properties:
+        id: { type: string }
+        occurrence_number: { type: string }
+        record_id: { type: string }
+        base_occurrence: { type: string }
+        suffix: { type: [number, 'null'] }
+        is_followon: { type: boolean }
+        incident_type: { type: string }
+        employee: { type: string }
+        employee_number: { type: string }
+        loss_date: { type: [string, 'null'] }
+        report_date: { type: [string, 'null'] }
+        location: { type: string }
+        branch: { type: string }
+        osha_recordable: { type: string }
+        dot_recordable: { type: string }
+        event_description: { type: string }
+        status: { type: string }
+        claim_number: { type: string }
+        preventable: { type: string }
+        injury_type_code: { type: string }
+        tenure_years: { type: [number, 'null'] }
+        hire_date: { type: [string, 'null'] }
+        tenure_days: { type: [number, 'null'] }
+        tier: { type: [number, 'null'] }
+        is_injury: { type: boolean }
+        row_hash: { type: string }
+        upload_batch_id: { type: [string, 'null'] }
+        created_at: { type: string }
+    ParsedRow:
+      type: object
+      description: A row parsed from an uploaded workbook in the browser.
+      additionalProperties: true
+      properties:
+        occurrence_number: { type: string }
+        record_id: { type: string }
+        incident_type: { type: string }
+        employee: { type: string }
+        employee_number: { type: string }
+        loss_date: { type: [string, 'null'] }
+        report_date: { type: [string, 'null'] }
+        location: { type: string }
+        osha_recordable: { type: string }
+        dot_recordable: { type: string }
+        event_description: { type: string }
+        status: { type: string }
+        claim_number: { type: string }
+        preventable: { type: string }
+        injury_type_code: { type: string }
+        tenure_years: { type: [number, 'null'] }
+        hire_date: { type: [string, 'null'] }
+        tier: { type: [number, 'null'] }
+    IngestRowsRequest:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/ParsedRow' }
+    IngestCommitRequest:
+      type: object
+      required: [rows, filename, byteSize, fileHash]
+      properties:
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/ParsedRow' }
+        filename: { type: string }
+        byteSize: { type: number }
+        fileHash: { type: string }
+        acceptConflicts: { type: boolean, default: true }
+    ClassifiedRow:
+      type: object
+      required: [row, classification]
+      properties:
+        row:
+          additionalProperties: true
+          type: object
+        classification:
+          type: string
+          enum: [new, exact-duplicate, conflict]
+        existingHash: { type: string }
+    CleanResult:
+      type: object
+      required: [rowCount, followOnRemoved, classificationsRestored, classified, newCount, duplicateCount, conflictCount]
+      properties:
+        rowCount: { type: number }
+        followOnRemoved: { type: number }
+        classificationsRestored: { type: number }
+        classified:
+          type: array
+          items: { $ref: '#/components/schemas/ClassifiedRow' }
+        newCount: { type: number }
+        duplicateCount: { type: number }
+        conflictCount: { type: number }
+    CommitResult:
+      type: object
+      required: [batchId, inserted, duplicatesSkipped, conflictsResolved, uniqueRowsKept, followOnRemoved, classificationsRestored, newCount]
+      properties:
+        batchId: { type: string }
+        inserted: { type: number }
+        duplicatesSkipped: { type: number }
+        conflictsResolved: { type: number }
+        uniqueRowsKept: { type: number }
+        followOnRemoved: { type: number }
+        classificationsRestored: { type: number }
+        newCount: { type: number }
+    AllowlistEmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string }
+    UpdateUserRequest:
+      type: object
+      properties:
+        is_admin: { type: boolean }
+        allowlisted: { type: boolean }
+    SetPreventableRequest:
+      type: object
+      required: [preventable]
+      properties:
+        preventable: { type: string }
+        note: { type: string }
+    SnowEventCreateRequest:
+      type: object
+      required: [year, month, attributable_count]
+      properties:
+        year: { type: number }
+        month: { type: number }
+        attributable_count: { type: number }
+        note: { type: string }
+    MileageUpsertRow:
+      type: object
+      required: [branch, year, month, miles]
+      properties:
+        branch: { type: string }
+        year: { type: number }
+        month: { type: number }
+        miles: { type: number }
+    OverrideUpsertRequest:
+      type: object
+      required: [occurrence_number, preventable]
+      properties:
+        occurrence_number: { type: string }
+        preventable: { type: string }
+        note: { type: string }
+    Mileage:
+      type: object
+      required: [id, branch, year, month, miles]
+      properties:
+        id: { type: string }
+        branch: { type: string }
+        year: { type: number }
+        month: { type: number }
+        miles: { type: number }
+    Override:
+      type: object
+      required: [id, occurrence_number, preventable, note]
+      properties:
+        id: { type: string }
+        occurrence_number: { type: string }
+        preventable: { type: string }
+        note: { type: string }
+    SnowEvent:
+      type: object
+      required: [id, year, month, attributable_count, note]
+      properties:
+        id: { type: string }
+        year: { type: number }
+        month: { type: number }
+        attributable_count: { type: number }
+        note: { type: string }
+    UploadBatch:
+      type: object
+      required: [id, filename, uploaded_at, row_count, follow_on_removed, classifications_restored]
+      properties:
+        id: { type: string }
+        filename: { type: string }
+        uploaded_by: { type: [string, 'null'] }
+        uploaded_at: { type: string }
+        row_count: { type: number }
+        follow_on_removed: { type: number }
+        classifications_restored: { type: number }
+        notes: { type: string }
+    UploadFile:
+      type: object
+      required: [id, file_hash, filename, uploaded_at]
+      properties:
+        id: { type: string }
+        file_hash: { type: string }
+        filename: { type: string }
+        byte_size: { type: number }
+        row_count: { type: number }
+        row_hashes:
+          type: array
+          items: { type: string }
+        uploaded_by: { type: [string, 'null'] }
+        uploaded_at: { type: string }
+        batch_id: { type: [string, 'null'] }
+    DatasetMerge:
+      type: object
+      required: [id, duplicate_rows_removed, unique_rows_kept, new_rows_added, performed_at]
+      properties:
+        id: { type: string }
+        source_batch_id: { type: [string, 'null'] }
+        target_batch_id: { type: [string, 'null'] }
+        duplicate_rows_removed: { type: number }
+        unique_rows_kept: { type: number }
+        new_rows_added: { type: number }
+        performed_by: { type: [string, 'null'] }
+        performed_at: { type: string }
+        note: { type: string }

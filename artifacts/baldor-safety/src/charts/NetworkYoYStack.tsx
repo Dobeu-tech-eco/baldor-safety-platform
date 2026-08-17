@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
-import { supabase, Incident } from '../lib/supabase';
+import { getIncidents, type Incident } from '../lib/api';
 import { classify } from '../lib/queries';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -13,8 +13,8 @@ export default function NetworkYoYStack() {
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false).eq('is_injury', false);
-      const incidents = (inc as Incident[]) || [];
+      const inc = await getIncidents({ isInjury: false });
+      const incidents: Incident[] = inc;
       const rows = MONTHS.map((m, idx) => {
         const month = idx + 1;
         const monthInc = (yr: number) => incidents.filter((i) => {

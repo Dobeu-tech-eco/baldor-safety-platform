@@ -3,7 +3,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Respons
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
 import { BRANCH_ORDER } from '../lib/branches';
-import { supabase, Incident, Mileage } from '../lib/supabase';
+import { api, getIncidents, type Incident, type Mileage } from '../lib/api';
 import { classify } from '../lib/queries';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -14,10 +14,10 @@ export default function APMM() {
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false).eq('is_injury', false);
-      const { data: ml } = await supabase.from('mileage').select('*');
-      const incidents = (inc as Incident[]) || [];
-      const mileage = (ml as Mileage[]) || [];
+      const inc = await getIncidents({ isInjury: false });
+      const ml = await api<Mileage[]>('/mileage');
+      const incidents: Incident[] = inc;
+      const mileage: Mileage[] = ml;
       const rows = MONTHS.map((m, idx) => {
         const month = idx + 1;
         const monthInc = incidents.filter((i) => {

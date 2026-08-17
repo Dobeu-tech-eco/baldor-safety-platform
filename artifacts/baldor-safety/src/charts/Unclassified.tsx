@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import ChartCard from '../components/ChartCard';
-import { supabase, Incident } from '../lib/supabase';
+import { getIncidents, type Incident } from '../lib/api';
 
 export default function Unclassified() {
   const [rows, setRows] = useState<Incident[]>([]);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('incidents').select('*').eq('is_followon', false).eq('is_injury', false);
+      const data = await getIncidents({ isInjury: false });
       const list = (data as Incident[]) || [];
       setRows(list.filter((i) => i.preventable !== 'Yes' && i.preventable !== 'No'));
     })();

@@ -3,15 +3,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
 import { BRANCH_ORDER } from '../lib/branches';
-import { supabase, Incident } from '../lib/supabase';
+import { getIncidents, type Incident } from '../lib/api';
 
 export default function IncidentTypeBreakdown() {
   const [data, setData] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false);
-      const incidents = (inc as Incident[]) || [];
+      const inc = await getIncidents();
+      const incidents: Incident[] = inc;
       const map = new Map<string, any>();
       incidents.forEach((i) => {
         const type = i.incident_type || 'Unspecified';

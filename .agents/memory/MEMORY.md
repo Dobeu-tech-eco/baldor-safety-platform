@@ -1,0 +1,1 @@
+- [OpenAPI codegen collisions](openapi-codegen-collisions.md) — inline request bodies in openapi.yaml can generate clashing zod const/type names; hoist bodies to named component schemas.

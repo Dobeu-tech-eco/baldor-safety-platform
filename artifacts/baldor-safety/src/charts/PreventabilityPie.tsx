@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { supabase, Incident } from '../lib/supabase';
+import { getIncidents, type Incident } from '../lib/api';
 import { classify } from '../lib/queries';
 import { COLORS } from '../lib/colors';
 
@@ -11,8 +11,8 @@ export default function PreventabilityPie() {
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false).eq('is_injury', false);
-      const incidents = (inc as Incident[]) || [];
+      const inc = await getIncidents({ isInjury: false });
+      const incidents: Incident[] = inc;
       const year = new Date().getFullYear();
       const ytd = incidents.filter((i) => i.loss_date && new Date(i.loss_date).getFullYear() === year);
       const prev = ytd.filter((i) => classify(i, false) === 'preventable').length;

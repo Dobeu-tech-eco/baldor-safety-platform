@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import ChartCard from '../components/ChartCard';
 import { COLORS } from '../lib/colors';
-import { supabase, Incident } from '../lib/supabase';
+import { getIncidents, type Incident } from '../lib/api';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -12,8 +12,8 @@ export default function NewHireShare() {
 
   useEffect(() => {
     (async () => {
-      const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false);
-      const incidents = (inc as Incident[]) || [];
+      const inc = await getIncidents();
+      const incidents: Incident[] = inc;
       const rows = MONTHS.map((m, idx) => {
         const month = idx + 1;
         const monthInc = incidents.filter((i) => {

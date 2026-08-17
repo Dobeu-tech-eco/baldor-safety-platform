@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, HeartPulse, AlertTriangle, FileCheck2, Send, RefreshCw, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
-import { supabase, Incident, UploadBatch } from '../lib/supabase';
+import { api, getIncidents, type UploadBatch } from '../lib/api';
 import { classify } from '../lib/queries';
 import PreventabilityPie from '../charts/PreventabilityPie';
 
@@ -16,16 +16,18 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false);
-    const { data: batches } = await supabase.from('upload_batches').select('*').order('uploaded_at', { ascending: false }).limit(5);
-    const incidents = (inc as Incident[]) || [];
+    const [incidents, history] = await Promise.all([
+      getIncidents(),
+      api<{ batches: UploadBatch[] }>('/upload-history'),
+    ]);
+    const batches = history.batches.slice(0, 5);
     const year = new Date().getFullYear();
     const ytd = incidents.filter((i) => i.loss_date && new Date(i.loss_date).getFullYear() === year);
     const vehicle = ytd.filter((i) => !i.is_injury);
     const injuries = ytd.filter((i) => i.is_injury);
     const unclass = vehicle.filter((i) => classify(i, false) === 'pending').length;
-    setKpis({ vehicle: vehicle.length, injuries: injuries.length, unclass, batches: batches?.length ?? 0 });
-    setRecent((batches as UploadBatch[]) || []);
+    setKpis({ vehicle: vehicle.length, injuries: injuries.length, unclass, batches: batches.length });
+    setRecent(batches);
     setLastSync(new Date());
     setLoading(false);
   }, []);
