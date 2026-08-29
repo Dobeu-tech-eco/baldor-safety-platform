@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, type TooltipValueType as ValueType } from 'recharts';
 import { supabase, Incident } from '../lib/supabase';
 import { classify } from '../lib/queries';
 import { COLORS } from '../lib/colors';
@@ -41,7 +41,7 @@ export default function PreventabilityPie() {
               <Pie data={slices} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} strokeWidth={0}>
                 {slices.map((s, i) => <Cell key={i} fill={s.color} />)}
               </Pie>
-              <Tooltip formatter={(v: number) => `${v} (${total ? Math.round((v / total) * 100) : 0}%)`} />
+              <Tooltip formatter={(v: ValueType | undefined) => `${v ?? 0} (${total ? Math.round(((Number(v) || 0) / total) * 100) : 0}%)`} />
               <Legend iconType="circle" wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
