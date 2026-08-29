@@ -17,4 +17,8 @@ export const COLORS = {
   gray: '#9CA3AF',
   prior: '#9CA3AF',
   normal: '#A9CCE3',
+  slideCream: '#F1EFEC',
+  typePreventable: '#A63626',
+  typeNonPreventable: '#99A0A3',
+  slideConfidential: '#006838',
 };
