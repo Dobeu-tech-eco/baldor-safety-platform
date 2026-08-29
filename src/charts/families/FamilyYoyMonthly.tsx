@@ -114,10 +114,9 @@ export default function FamilyYoyMonthly({ incidents, range, branch }: Props) {
     setLocalRange(toDateRange(range));
   }, [range]);
 
-  const yearB = localRange.to.getUTCFullYear();
+  const yearB = localRange.to.getFullYear();
   const yearA = yearB - 1;
-  const throughMonth = localRange.to.getUTCMonth() + 1;
-
+  const throughMonth = localRange.to.getMonth() + 1;
   const rows = useMemo(() => filterRows(incidents, scope), [incidents, scope]);
   const raw = useMemo(
     () => aggregateYoyMonthly(rows, yearA, yearB, throughMonth),
