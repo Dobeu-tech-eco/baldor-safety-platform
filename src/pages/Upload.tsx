@@ -16,6 +16,8 @@ import {
   commitSamsara,
   commitMiles,
   milesRowsToUpserts,
+  inferPeriodFromFilename,
+  defaultSamsaraPeriod,
   ParsedSamsaraRow,
   ParsedMilesRow,
 } from '../lib/ingestSources';
@@ -70,6 +72,8 @@ export default function UploadPage() {
   const [overrideDup, setOverrideDup] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [tagMaps, setTagMaps] = useState<TagBranchMap[]>(DEFAULT_TAG_MAPS);
+  const [samsaraPeriodStart, setSamsaraPeriodStart] = useState('');
+  const [samsaraPeriodEnd, setSamsaraPeriodEnd] = useState('');
 
   const [batches, setBatches] = useState<UploadBatch[]>([]);
   const [files, setFiles] = useState<UploadFile[]>([]);
@@ -98,6 +102,7 @@ export default function UploadPage() {
   function reset() {
     setFile(null); setFileHash(null); setPreview(null); setSourceKind(null); setStage('idle');
     setDuplicateFile(null); setOverrideDup(false);
+    setSamsaraPeriodStart(''); setSamsaraPeriodEnd('');
     if (inputRef.current) inputRef.current.value = '';
   }
 
@@ -159,6 +164,9 @@ export default function UploadPage() {
           setStage('idle');
           return;
         }
+        const period = inferPeriodFromFilename(f.name) ?? defaultSamsaraPeriod();
+        setSamsaraPeriodStart(period.start);
+        setSamsaraPeriodEnd(period.end);
         const unmappedTags = collectUnmappedTags(rows.map((r) => r.tag), maps);
         setPreview({ kind: 'samsara', rows, unmappedTags });
         setStage('reviewing');
@@ -210,18 +218,24 @@ export default function UploadPage() {
           break;
         }
         case 'samsara': {
+          if (!samsaraPeriodStart || !samsaraPeriodEnd) {
+            setNotice({ kind: 'error', text: 'Set period start and end before committing Samsara data.' });
+            setStage('reviewing');
+            return;
+          }
           const r = await commitSamsara(
             preview.rows,
-            { name: file.name, size: file.size },
+            { name: file.name, size: file.size, hash: fileHash },
             user?.id ?? null,
+            { periodStart: samsaraPeriodStart, periodEnd: samsaraPeriodEnd },
           );
-          msg = `Committed Samsara batch ${r.batchId.slice(0, 8)}. ${r.inserted} tag summaries written.`;
+          msg = `Committed Samsara batch ${r.batchId.slice(0, 8)}. ${r.inserted} tag summaries written (${samsaraPeriodStart} – ${samsaraPeriodEnd}).`;
           break;
         }
         case 'mileage': {
           const r = await commitMiles(
             preview.rows,
-            { name: file.name, size: file.size },
+            { name: file.name, size: file.size, hash: fileHash },
             user?.id ?? null,
             tagMaps,
           );
@@ -323,7 +337,15 @@ export default function UploadPage() {
       )}
 
       {preview && preview.kind !== 'incidents' && (stage === 'reviewing' || stage === 'committing') && (
-        <SourcePreviewPanel preview={preview} committing={isCommitting} onCommit={commit} />
+        <SourcePreviewPanel
+          preview={preview}
+          committing={isCommitting}
+          onCommit={commit}
+          samsaraPeriodStart={samsaraPeriodStart}
+          samsaraPeriodEnd={samsaraPeriodEnd}
+          onSamsaraPeriodStart={setSamsaraPeriodStart}
+          onSamsaraPeriodEnd={setSamsaraPeriodEnd}
+        />
       )}
 
       <HistoryPanel batches={batches} files={files} merges={merges} />
@@ -349,10 +371,15 @@ function NoticeBanner({ notice }: { notice: NonNullable<Notice> }) {
 
 function SourcePreviewPanel({
   preview, committing, onCommit,
+  samsaraPeriodStart, samsaraPeriodEnd, onSamsaraPeriodStart, onSamsaraPeriodEnd,
 }: {
   preview: Exclude<SourcePreview, { kind: 'incidents' }>;
   committing: boolean;
   onCommit: () => void;
+  samsaraPeriodStart: string;
+  samsaraPeriodEnd: string;
+  onSamsaraPeriodStart: (v: string) => void;
+  onSamsaraPeriodEnd: (v: string) => void;
 }) {
   const title = preview.kind === 'samsara' ? 'Samsara preview' : 'Mileage preview';
   const rowCount = preview.rows.length;
@@ -371,6 +398,33 @@ function SourcePreviewPanel({
             <GitMerge className="w-4 h-4" />{committing ? 'Merging...' : 'Commit'}
           </button>
         </div>
+        {preview.kind === 'samsara' && (
+          <div className="mt-3 flex flex-wrap items-end gap-4">
+            <label className="text-xs text-gray-700">
+              <span className="block mb-1 font-medium">Period start</span>
+              <input
+                type="date"
+                value={samsaraPeriodStart}
+                onChange={(e) => onSamsaraPeriodStart(e.target.value)}
+                disabled={committing}
+                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              />
+            </label>
+            <label className="text-xs text-gray-700">
+              <span className="block mb-1 font-medium">Period end</span>
+              <input
+                type="date"
+                value={samsaraPeriodEnd}
+                onChange={(e) => onSamsaraPeriodEnd(e.target.value)}
+                disabled={committing}
+                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              />
+            </label>
+            <p className="text-[11px] text-gray-500 pb-1.5">
+              Defaults from filename when present; otherwise last calendar month. Required before commit.
+            </p>
+          </div>
+        )}
       </div>
       {unmapped.length > 0 && (
         <div className="px-5 py-3 border-b border-amber-100 bg-amber-50 text-xs text-amber-900">

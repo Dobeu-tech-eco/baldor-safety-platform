@@ -16,6 +16,7 @@ import SlideChrome, { SlideScope } from '../../components/SlideChrome';
 import { BRANCH_ORDER } from '../../lib/branches';
 import { COLORS } from '../../lib/colors';
 import { DateRange, fmt } from '../../lib/dates';
+import { parseIsoDate } from '../../lib/isoDate';
 import { Incident, SamsaraTagSummary } from '../../lib/supabase';
 import { mapTagToBranch } from '../../lib/tagMap';
 
@@ -88,17 +89,26 @@ function behaviorCount(row: SamsaraTagSummary, key: BehaviorKey): number {
   }
 }
 
+function calendarKeyLocal(d: Date): number {
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+function calendarKeyIso(s: string): number {
+  const d = parseIsoDate(s);
+  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+}
+
 function filterSamsara(
   samsara: SamsaraTagSummary[],
   range: FamilyRange,
   scope: SlideScope,
 ): SamsaraTagSummary[] {
-  const fromMs = range.from.getTime();
-  const toMs = range.to.getTime();
+  const fromKey = calendarKeyLocal(range.from);
+  const toKey = calendarKeyLocal(range.to);
   return samsara.filter((row) => {
-    const start = new Date(row.period_start).getTime();
-    const end = new Date(row.period_end).getTime();
-    if (end < fromMs || start > toMs) return false;
+    const start = calendarKeyIso(row.period_start);
+    const end = calendarKeyIso(row.period_end);
+    if (end < fromKey || start > toKey) return false;
     if (scope !== 'all') {
       const mapped = mapTagToBranch(row.tag);
       if (mapped !== scope) return false;

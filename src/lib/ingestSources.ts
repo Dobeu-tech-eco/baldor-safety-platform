@@ -235,6 +235,11 @@ function lastCalendarMonth(today = new Date()): { start: string; end: string } {
   return { start: fmt(startOfMonth(d)), end: fmt(endOfMonth(d)) };
 }
 
+/** Last full calendar month as YYYY-MM-DD start/end (exported for Upload period defaults). */
+export function defaultSamsaraPeriod(today = new Date()): { start: string; end: string } {
+  return lastCalendarMonth(today);
+}
+
 export function inferPeriodFromFilename(filename: string): { start: string; end: string } | null {
   const re = /([A-Za-z]{3})_(\d{2})_(\d{4})/g;
   const matches = [...filename.matchAll(re)];
@@ -292,7 +297,7 @@ export function milesRowsToUpserts(
 
 export async function commitSamsara(
   rows: ParsedSamsaraRow[],
-  file: { name: string; size: number },
+  file: { name: string; size: number; hash: string },
   userId: string | null,
   options: { periodStart?: string; periodEnd?: string } = {}
 ): Promise<CommitSamsaraResult> {
@@ -343,12 +348,21 @@ export async function commitSamsara(
     inserted += chunk.length;
   }
 
+  await supabase.from('upload_files').insert({
+    file_hash: file.hash,
+    filename: file.name,
+    byte_size: file.size,
+    row_count: rows.length,
+    uploaded_by: userId,
+    batch_id: batch.id,
+  });
+
   return { batchId: batch.id, inserted };
 }
 
 export async function commitMiles(
   rows: ParsedMilesRow[],
-  file: { name: string; size: number },
+  file: { name: string; size: number; hash: string },
   userId: string | null,
   maps: TagBranchMap[] = DEFAULT_TAG_MAPS
 ): Promise<CommitMilesResult> {
@@ -375,6 +389,15 @@ export async function commitMiles(
     if (error) throw new Error(error.message);
     inserted += chunk.length;
   }
+
+  await supabase.from('upload_files').insert({
+    file_hash: file.hash,
+    filename: file.name,
+    byte_size: file.size,
+    row_count: rows.length,
+    uploaded_by: userId,
+    batch_id: batch.id,
+  });
 
   return { batchId: batch.id, inserted, unmappedCount };
 }

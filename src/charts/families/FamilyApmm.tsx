@@ -16,6 +16,7 @@ import { BRANCH_ORDER } from '../../lib/branches';
 import { preventabilityClass } from '../../lib/classify';
 import { COLORS } from '../../lib/colors';
 import { DateRange, fmt } from '../../lib/dates';
+import { inRange, parseIsoDate } from '../../lib/isoDate';
 import { Incident, Mileage } from '../../lib/supabase';
 import { aggregateApmmYearly, autoRows, AutoRow } from './aggregate';
 
@@ -48,12 +49,8 @@ function toScope(branch?: string | 'all'): SlideScope {
 }
 
 function filterRows(incidents: Incident[], range: FamilyRange, scope: SlideScope): AutoRow[] {
-  const fromMs = range.from.getTime();
-  const toMs = range.to.getTime();
   return incidents.filter((i) => {
-    if (!i.loss_date) return false;
-    const t = new Date(i.loss_date).getTime();
-    if (t < fromMs || t > toMs) return false;
+    if (!inRange(i.loss_date, range.from, range.to)) return false;
     if (scope !== 'all' && i.branch !== scope) return false;
     return true;
   });
@@ -98,7 +95,7 @@ function aggregateApmmQuarterly(
     const maxQ = year === throughYear ? throughQ : 3;
     for (let q = 0; q <= maxQ; q++) {
       const ofQ = autoRows(rows).filter((r) => {
-        const d = new Date(r.loss_date as string);
+        const d = parseIsoDate(r.loss_date as string);
         return d.getUTCFullYear() === year && quarterOf(d) === q;
       });
       let p = 0;

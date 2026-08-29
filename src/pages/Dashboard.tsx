@@ -10,6 +10,7 @@ import FamilyApmm from '../charts/families/FamilyApmm';
 import { fetchIncidents } from '../lib/queries';
 import { preventabilityClass } from '../lib/classify';
 import { ytd } from '../lib/dates';
+import { inRange } from '../lib/isoDate';
 import { COLORS } from '../lib/colors';
 import { Incident, Mileage, supabase } from '../lib/supabase';
 
@@ -55,11 +56,7 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  const year = range.to.getFullYear();
-  const ytdRows = incidents.filter((i) => {
-    if (!i.loss_date) return false;
-    return new Date(i.loss_date).getFullYear() === year;
-  });
+  const ytdRows = incidents.filter((i) => inRange(i.loss_date, range.from, range.to));
   const autoYtd = ytdRows.filter((i) => !i.is_injury);
   const injuriesYtd = ytdRows.filter((i) => i.is_injury);
   const preventable = autoYtd.filter((i) => preventabilityClass(i, true) === 'preventable').length;

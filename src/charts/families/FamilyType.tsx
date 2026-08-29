@@ -14,6 +14,7 @@ import SlideChrome, { SlideScope } from '../../components/SlideChrome';
 import { BRANCH_ORDER } from '../../lib/branches';
 import { COLORS } from '../../lib/colors';
 import { DateRange, fmt } from '../../lib/dates';
+import { inRange } from '../../lib/isoDate';
 import { Incident } from '../../lib/supabase';
 import { aggregateByType, AutoRow } from './aggregate';
 
@@ -46,12 +47,8 @@ function toScope(branch?: string | 'all'): SlideScope {
 }
 
 function filterRows(incidents: Incident[], range: FamilyRange, scope: SlideScope): AutoRow[] {
-  const fromMs = range.from.getTime();
-  const toMs = range.to.getTime();
   return incidents.filter((i) => {
-    if (!i.loss_date) return false;
-    const t = new Date(i.loss_date).getTime();
-    if (t < fromMs || t > toMs) return false;
+    if (!inRange(i.loss_date, range.from, range.to)) return false;
     if (scope !== 'all' && i.branch !== scope) return false;
     return true;
   });
