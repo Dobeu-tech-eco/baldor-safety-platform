@@ -16,3 +16,14 @@ REVOKE ALL ON public.upload_files FROM anon;
 REVOKE ALL ON public.dataset_merges FROM anon;
 REVOKE ALL ON public.samsara_tag_summaries FROM anon;
 REVOKE ALL ON public.tag_branch_maps FROM anon;
+
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.app_users FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.upload_batches FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.incidents FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.mileage FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.overrides FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.snow_events FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.upload_files FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.dataset_merges FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.samsara_tag_summaries FROM authenticated;
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.tag_branch_maps FROM authenticated;
