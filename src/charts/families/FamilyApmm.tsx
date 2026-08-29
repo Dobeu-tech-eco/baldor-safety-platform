@@ -191,7 +191,7 @@ export default function FamilyApmm({ incidents, mileage = [], range, branch }: P
   const yearly = useMemo(() => {
     const byYear = milesByYear(scopedMiles);
     return aggregateApmmYearly(rows, byYear).map((p) => {
-      const incomplete = p.year === localRange.to.getUTCFullYear();
+      const incomplete = p.year === localRange.to.getFullYear();
       return {
         ...p,
         label: incomplete ? `${p.year} YTD` : String(p.year),
