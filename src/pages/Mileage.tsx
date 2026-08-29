@@ -40,7 +40,9 @@ export default function MileagePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Mileage</h1>
-        <p className="text-sm text-gray-500 mt-1">Monthly miles per branch for APMM calculation</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Monthly miles per branch for APMM (accidents ÷ miles × 1,000,000). Jurisdiction miles can also arrive via Upload.
+        </p>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">

@@ -22,5 +22,9 @@ export default function ChartRouter({ chartId, range }: { chartId: ChartId; rang
     case 'branch-30-trend': return <Branch30Trend />;
     case 'apmm': return <APMM />;
     case 'unclassified': return <Unclassified />;
+    default: {
+      const _exhaustive: never = chartId;
+      return _exhaustive;
+    }
   }
 }

@@ -241,6 +241,7 @@ export async function commitIngest(
     .insert({
       filename: file.name, uploaded_by: userId, row_count: cleaned.rows.length,
       follow_on_removed: cleaned.followOnRemoved, classifications_restored: cleaned.classificationsRestored,
+      source_kind: 'incidents',
     })
     .select().maybeSingle();
   if (batchErr || !batch) throw new Error(batchErr?.message || 'Failed to create upload batch');

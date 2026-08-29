@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { supabase, Override, SnowEvent, AppUser } from '../lib/supabase';
+import { supabase, Override, SnowEvent, AppUser, TagBranchMapRow } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+
+const BRANCH_OPTIONS = ['BNY', 'BMA', 'BPA', 'BDC'] as const;
 
 export default function Settings() {
   const { profile } = useAuth();
   const [overrides, setOverrides] = useState<Override[]>([]);
   const [snow, setSnow] = useState<SnowEvent[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [tagMaps, setTagMaps] = useState<TagBranchMapRow[]>([]);
 
   const [ovOcc, setOvOcc] = useState('');
   const [ovVal, setOvVal] = useState('Yes');
@@ -17,13 +20,18 @@ export default function Settings() {
   const [snowMonth, setSnowMonth] = useState(1);
   const [snowCount, setSnowCount] = useState(0);
 
+  const [tagPattern, setTagPattern] = useState('');
+  const [tagBranch, setTagBranch] = useState<string>('BNY');
+
   async function load() {
     const { data: o } = await supabase.from('overrides').select('*').order('occurrence_number');
     const { data: s } = await supabase.from('snow_events').select('*').order('year').order('month');
     const { data: u } = await supabase.from('app_users').select('*').order('email');
+    const { data: t } = await supabase.from('tag_branch_maps').select('*').order('tag_pattern');
     setOverrides((o as Override[]) || []);
     setSnow((s as SnowEvent[]) || []);
     setUsers((u as AppUser[]) || []);
+    setTagMaps((t as TagBranchMapRow[]) || []);
   }
   useEffect(() => { load(); }, []);
 
@@ -40,6 +48,18 @@ export default function Settings() {
   }
   async function removeSnow(id: string) { await supabase.from('snow_events').delete().eq('id', id); load(); }
 
+  async function addTagMap() {
+    const pattern = tagPattern.trim();
+    if (!pattern) return;
+    await supabase.from('tag_branch_maps').upsert({ tag_pattern: pattern, branch: tagBranch }, { onConflict: 'tag_pattern' });
+    setTagPattern('');
+    load();
+  }
+  async function removeTagMap(id: string) {
+    await supabase.from('tag_branch_maps').delete().eq('id', id);
+    load();
+  }
+
   async function toggleAdmin(u: AppUser) {
     await supabase.from('app_users').update({ is_admin: !u.is_admin }).eq('id', u.id);
     load();
@@ -49,7 +69,7 @@ export default function Settings() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Overrides, snow attribution, and admin</p>
+        <p className="text-sm text-gray-500 mt-1">Overrides, snow attribution, branch tag maps, and admin</p>
       </div>
 
       <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -101,6 +121,46 @@ export default function Settings() {
               </div>
             ))}
             {!snow.length && <div className="px-3 py-4 text-sm text-gray-500">No snow events.</div>}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div className="px-5 py-3 border-b border-gray-200 bg-gray-50">
+          <h2 className="font-semibold text-gray-900">Branch tag maps</h2>
+        </div>
+        <div className="p-5 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={tagPattern}
+              onChange={(e) => setTagPattern(e.target.value)}
+              placeholder="Tag pattern (e.g. brooklyn)"
+              className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+            <select
+              value={tagBranch}
+              onChange={(e) => setTagBranch(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              {BRANCH_OPTIONS.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            <button onClick={addTagMap} className="px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] text-sm">Add</button>
+          </div>
+          <div className="divide-y divide-gray-200 max-h-64 overflow-y-auto border border-gray-200 rounded">
+            {tagMaps.map((m) => (
+              <div key={m.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                <div>
+                  <span className="font-mono">{m.tag_pattern}</span>
+                  <span className="ml-2 text-gray-600">→ {m.branch}</span>
+                </div>
+                <button onClick={() => removeTagMap(m.id)} className="text-gray-400 hover:text-[#C0392B]">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            {!tagMaps.length && <div className="px-3 py-4 text-sm text-gray-500">No tag maps.</div>}
           </div>
         </div>
       </section>

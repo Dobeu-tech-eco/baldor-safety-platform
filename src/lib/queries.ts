@@ -1,5 +1,6 @@
 import { supabase, Incident } from './supabase';
 import { fmt } from './dates';
+import { preventabilityClass } from './classify';
 
 export async function fetchIncidents(opts: { from?: Date; to?: Date; branch?: string; includeFollowons?: boolean; }): Promise<Incident[]> {
   let q = supabase.from('incidents').select('*');
@@ -14,9 +15,5 @@ export async function fetchIncidents(opts: { from?: Date; to?: Date; branch?: st
 }
 
 export function classify(row: Incident, foldPending = true): 'preventable' | 'nonpreventable' | 'pending' {
-  if (row.preventable === 'Yes') return 'preventable';
-  if (row.preventable === 'No') return 'nonpreventable';
-  if (row.is_injury) return 'nonpreventable';
-  if (foldPending) return 'preventable';
-  return 'pending';
+  return preventabilityClass(row, foldPending);
 }

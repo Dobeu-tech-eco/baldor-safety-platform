@@ -1,45 +1,82 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Truck, HeartPulse, AlertTriangle, FileCheck2, Send, RefreshCw, BarChart3 } from 'lucide-react';
-import { format } from 'date-fns';
-import { supabase, Incident, UploadBatch } from '../lib/supabase';
-import { classify } from '../lib/queries';
-import PreventabilityPie from '../charts/PreventabilityPie';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { RefreshCw, Truck, ShieldAlert, HeartPulse, Percent } from 'lucide-react';
+import {
+  Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts';
+import PageBanner from '../components/PageBanner';
+import FamilyType from '../charts/families/FamilyType';
+import FamilyApmm from '../charts/families/FamilyApmm';
+import { fetchIncidents } from '../lib/queries';
+import { preventabilityClass } from '../lib/classify';
+import { ytd } from '../lib/dates';
+import { inRange } from '../lib/isoDate';
+import { COLORS } from '../lib/colors';
+import { Incident, Mileage, supabase } from '../lib/supabase';
+
+const QUICK_LINKS: { to: string; label: string }[] = [
+  { to: '/apmm', label: 'APMM' },
+  { to: '/incidents', label: 'Incidents' },
+  { to: '/injuries', label: 'Injuries' },
+  { to: '/new-hire', label: 'New-Hire' },
+  { to: '/distracted', label: 'Distracted' },
+  { to: '/dot', label: 'DOT' },
+  { to: '/unclassified', label: 'Unclassified' },
+  { to: '/mileage', label: 'Mileage' },
+  { to: '/claims', label: 'Claims' },
+  { to: '/methodology', label: 'Methodology' },
+];
 
 export default function Dashboard() {
-  const [kpis, setKpis] = useState({ vehicle: 0, injuries: 0, unclass: 0, batches: 0 });
-  const [recent, setRecent] = useState<UploadBatch[]>([]);
-  const [ask, setAsk] = useState('');
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [mileage, setMileage] = useState<Mileage[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
-  const navigate = useNavigate();
+  const range = useMemo(() => ytd(), []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: inc } = await supabase.from('incidents').select('*').eq('is_followon', false);
-    const { data: batches } = await supabase.from('upload_batches').select('*').order('uploaded_at', { ascending: false }).limit(5);
-    const incidents = (inc as Incident[]) || [];
-    const year = new Date().getFullYear();
-    const ytd = incidents.filter((i) => i.loss_date && new Date(i.loss_date).getFullYear() === year);
-    const vehicle = ytd.filter((i) => !i.is_injury);
-    const injuries = ytd.filter((i) => i.is_injury);
-    const unclass = vehicle.filter((i) => classify(i, false) === 'pending').length;
-    setKpis({ vehicle: vehicle.length, injuries: injuries.length, unclass, batches: batches?.length ?? 0 });
-    setRecent((batches as UploadBatch[]) || []);
-    setLastSync(new Date());
-    setLoading(false);
+    setError(null);
+    try {
+      const [inc, ml] = await Promise.all([
+        fetchIncidents({}),
+        supabase.from('mileage').select('*'),
+      ]);
+      if (ml.error) throw new Error(ml.error.message);
+      setIncidents(inc);
+      setMileage((ml.data as Mileage[]) || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load dashboard data');
+      setIncidents([]);
+      setMileage([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  function submitAsk(e: React.FormEvent) {
-    e.preventDefault();
-    if (!ask.trim()) return;
-    navigate(`/charts?q=${encodeURIComponent(ask)}`);
-  }
+  const ytdRows = incidents.filter((i) => inRange(i.loss_date, range.from, range.to));
+  const autoYtd = ytdRows.filter((i) => !i.is_injury);
+  const injuriesYtd = ytdRows.filter((i) => i.is_injury);
+  const preventable = autoYtd.filter((i) => preventabilityClass(i, true) === 'preventable').length;
+  const nonPreventable = autoYtd.filter((i) => preventabilityClass(i, true) === 'nonpreventable').length;
+  const oshaYes = injuriesYtd.filter((i) => i.osha_recordable === 'Yes').length;
+  const oshaPct = injuriesYtd.length ? Math.round((oshaYes / injuriesYtd.length) * 100) : 0;
 
-  const Card = ({ icon, label, value, accent }: { icon: JSX.Element; label: string; value: number; accent: string }) => (
-    <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+  const injuryByNature = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const i of injuriesYtd) {
+      const code = i.injury_type_code?.trim() || 'Unspecified';
+      counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([code, count]) => ({ code, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [injuriesYtd]);
+
+  const Card = ({ icon, label, value, accent }: { icon: JSX.Element; label: string; value: string | number; accent: string }) => (
+    <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs text-gray-500 uppercase tracking-wider">{label}</div>
@@ -62,59 +99,68 @@ export default function Dashboard() {
           className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          {lastSync ? `Synced ${format(lastSync, 'p')}` : 'Sync'}
+          Refresh
         </button>
       </div>
 
-      <form onSubmit={submitAsk} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Ask for a chart</label>
-        <div className="flex gap-2">
-          <input value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="e.g. Show me YoY preventable with snow attribution"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006838]" />
-          <button type="submit" className="px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] flex items-center gap-2">
-            <Send className="w-4 h-4" />Generate
-          </button>
-        </div>
-      </form>
+      {error && <PageBanner kind="error" text={error} />}
+      {!error && !loading && incidents.length === 0 && (
+        <PageBanner kind="empty" text="No incident data yet. Upload an Origami export to populate the dashboard." to="/upload" />
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card icon={<Truck className="w-5 h-5 text-white" />} label="Vehicle YTD" value={kpis.vehicle} accent="bg-[#006838]" />
-        <Card icon={<HeartPulse className="w-5 h-5 text-white" />} label="Injuries YTD" value={kpis.injuries} accent="bg-[#1F4E79]" />
-        <Card icon={<AlertTriangle className="w-5 h-5 text-white" />} label="Unclassified" value={kpis.unclass} accent="bg-[#C0392B]" />
-        <Card icon={<FileCheck2 className="w-5 h-5 text-white" />} label="Recent Batches" value={kpis.batches} accent="bg-[#7B2D8E]" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <PreventabilityPie />
-
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="px-5 py-3 border-b border-gray-200 bg-gray-50">
-            <h2 className="font-semibold text-gray-900">Recent uploads</h2>
+      {!error && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card icon={<Truck className="w-5 h-5 text-white" />} label="YTD Preventable" value={preventable} accent="bg-[#A63626]" />
+            <Card icon={<ShieldAlert className="w-5 h-5 text-white" />} label="YTD Non-Preventable" value={nonPreventable} accent="bg-[#1F4E79]" />
+            <Card icon={<HeartPulse className="w-5 h-5 text-white" />} label="YTD Injuries" value={injuriesYtd.length} accent="bg-[#7B2D8E]" />
+            <Card icon={<Percent className="w-5 h-5 text-white" />} label="OSHA %" value={`${oshaPct}%`} accent="bg-[#006838]" />
           </div>
-          <div className="divide-y divide-gray-200">
-            {recent.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <BarChart3 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No uploads yet</p>
-                <p className="text-xs text-gray-400 mt-1">Upload an incident export to start tracking</p>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">Quick links</h2>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_LINKS.map((l) => (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 hover:border-[#006838]"
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {incidents.length > 0 && (
+            <div className="space-y-6">
+              <FamilyType incidents={incidents} range={range} branch="all" />
+
+              <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                <h2 className="font-semibold text-gray-900 mb-1">Injuries by nature (YTD)</h2>
+                <p className="text-xs text-gray-500 mb-4">Counts by injury type code</p>
+                {injuryByNature.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-6 text-center">No injuries YTD.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={Math.max(180, injuryByNature.length * 36)}>
+                    <BarChart data={injuryByNature} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="code" width={120} tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill={COLORS.injury} name="Injuries" isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
-            ) : (
-              recent.map((b) => (
-                <div key={b.id} className="px-5 py-3 flex items-center justify-between text-sm hover:bg-gray-50 transition-colors">
-                  <div>
-                    <div className="font-medium text-gray-900">{b.filename}</div>
-                    <div className="text-xs text-gray-500">{format(new Date(b.uploaded_at), 'PP p')}</div>
-                  </div>
-                  <div className="text-right text-xs text-gray-600">
-                    <div>{b.row_count} rows</div>
-                    <div>{b.follow_on_removed} follow-ons removed</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+
+              {mileage.length > 0 && (
+                <FamilyApmm incidents={incidents} mileage={mileage} range={range} branch="all" />
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

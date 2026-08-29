@@ -1,5 +1,9 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Shield, Upload, BarChart3, Database, Gauge, Settings, LogOut, LayoutDashboard } from 'lucide-react';
+import {
+  Shield, Upload, Gauge, Settings, LogOut, LayoutDashboard, Activity,
+  AlertTriangle, HeartPulse, UserPlus, Eye, ClipboardCheck, HelpCircle,
+  BookOpen, Landmark,
+} from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 export default function Layout() {
@@ -33,13 +37,20 @@ export default function Layout() {
               </div>
             </Link>
           </div>
-          <nav className="flex-1 px-2 py-4 space-y-1">
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
             {navItem('/dashboard', <LayoutDashboard className="w-4 h-4" />, 'Dashboard')}
-            {navItem('/charts', <BarChart3 className="w-4 h-4" />, 'Charts')}
-            {navItem('/upload', <Upload className="w-4 h-4" />, 'Upload')}
-            {navItem('/data', <Database className="w-4 h-4" />, 'Data')}
+            {navItem('/apmm', <Activity className="w-4 h-4" />, 'APMM')}
+            {navItem('/incidents', <AlertTriangle className="w-4 h-4" />, 'Incidents')}
+            {navItem('/injuries', <HeartPulse className="w-4 h-4" />, 'Injuries')}
+            {navItem('/new-hire', <UserPlus className="w-4 h-4" />, 'New-Hire')}
+            {navItem('/distracted', <Eye className="w-4 h-4" />, 'Distracted')}
+            {navItem('/dot', <ClipboardCheck className="w-4 h-4" />, 'DOT')}
+            {navItem('/unclassified', <HelpCircle className="w-4 h-4" />, 'Unclassified')}
             {navItem('/mileage', <Gauge className="w-4 h-4" />, 'Mileage')}
+            {navItem('/claims', <Landmark className="w-4 h-4" />, 'Claims')}
+            {navItem('/methodology', <BookOpen className="w-4 h-4" />, 'Methodology')}
             {navItem('/settings', <Settings className="w-4 h-4" />, 'Settings')}
+            {navItem('/upload', <Upload className="w-4 h-4" />, 'Upload')}
           </nav>
           <div className="border-t border-gray-800 p-3">
             <div className="text-xs text-gray-400 mb-2 px-1">
@@ -57,7 +68,7 @@ export default function Layout() {
         </main>
       </div>
       <footer className="bg-[#0f1419] text-gray-400 text-[11px] py-2 text-center tracking-widest uppercase border-t border-gray-800">
-        Confidential — Internal Use Only
+        CONFIDENTIAL — Internal Use Only
       </footer>
     </div>
   );

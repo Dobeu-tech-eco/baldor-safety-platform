@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Upload as UploadIcon, FileCheck2, AlertCircle, CheckCircle2,
+  Upload as UploadIcon, AlertCircle, CheckCircle2,
   GitMerge, FileText, Clock, ShieldAlert, RefreshCw, Files,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -8,13 +8,53 @@ import {
   parseWorkbook, cleanRows, commitIngest, computeFileHash, checkFileDuplicate,
   CleanResult,
 } from '../lib/ingest';
+import {
+  UNRECOGNIZED_MESSAGE,
+  readFirstSheetHeaders,
+  parseSamsaraWorkbook,
+  parseMilesWorkbook,
+  commitSamsara,
+  commitMiles,
+  milesRowsToUpserts,
+  inferPeriodFromFilename,
+  defaultSamsaraPeriod,
+  ParsedSamsaraRow,
+  ParsedMilesRow,
+} from '../lib/ingestSources';
+import { detectSource, SourceKind } from '../lib/detectSource';
+import { mapTagToBranch, DEFAULT_TAG_MAPS, TagBranchMap } from '../lib/tagMap';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../components/Toast';
-import { supabase, UploadFile, UploadBatch, DatasetMerge } from '../lib/supabase';
+import { supabase, UploadFile, UploadBatch, DatasetMerge, TagBranchMapRow } from '../lib/supabase';
 
 type Stage = 'idle' | 'parsing' | 'reviewing' | 'committing' | 'done';
 
 type Notice = { kind: 'info' | 'success' | 'warning' | 'error'; text: string } | null;
+
+type SourcePreview =
+  | { kind: 'incidents'; cleaned: CleanResult }
+  | { kind: 'samsara'; rows: ParsedSamsaraRow[]; unmappedTags: string[] }
+  | { kind: 'mileage'; rows: ParsedMilesRow[]; upsertCount: number; unmappedTags: string[] };
+
+async function loadTagMaps(): Promise<TagBranchMap[]> {
+  const { data } = await supabase.from('tag_branch_maps').select('tag_pattern, branch');
+  const rows = (data as Pick<TagBranchMapRow, 'tag_pattern' | 'branch'>[] | null) ?? [];
+  if (!rows.length) return DEFAULT_TAG_MAPS;
+  return rows.map((r) => ({ tag_pattern: r.tag_pattern, branch: r.branch }));
+}
+
+function collectUnmappedTags(tags: string[], maps: TagBranchMap[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const tag of tags) {
+    if (mapTagToBranch(tag, maps)) continue;
+    const key = tag.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(tag);
+  }
+  return out;
+}
 
 export default function UploadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -23,19 +63,25 @@ export default function UploadPage() {
 
   const [file, setFile] = useState<File | null>(null);
   const [fileHash, setFileHash] = useState<string | null>(null);
-  const [cleaned, setCleaned] = useState<CleanResult | null>(null);
+  const [preview, setPreview] = useState<SourcePreview | null>(null);
+  const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
   const [notice, setNotice] = useState<Notice>(null);
   const [acceptConflicts, setAcceptConflicts] = useState(true);
   const [duplicateFile, setDuplicateFile] = useState<UploadFile | null>(null);
   const [overrideDup, setOverrideDup] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [tagMaps, setTagMaps] = useState<TagBranchMap[]>(DEFAULT_TAG_MAPS);
+  const [samsaraPeriodStart, setSamsaraPeriodStart] = useState('');
+  const [samsaraPeriodEnd, setSamsaraPeriodEnd] = useState('');
 
   const [batches, setBatches] = useState<UploadBatch[]>([]);
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [merges, setMerges] = useState<DatasetMerge[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+
+  const isCommitting = stage === 'committing';
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -54,8 +100,9 @@ export default function UploadPage() {
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
   function reset() {
-    setFile(null); setFileHash(null); setCleaned(null); setStage('idle');
+    setFile(null); setFileHash(null); setPreview(null); setSourceKind(null); setStage('idle');
     setDuplicateFile(null); setOverrideDup(false);
+    setSamsaraPeriodStart(''); setSamsaraPeriodEnd('');
     if (inputRef.current) inputRef.current.value = '';
   }
 
@@ -76,24 +123,74 @@ export default function UploadPage() {
         });
       }
 
-      const parsed = parseWorkbook(buf);
-      if (parsed.length === 0) {
-        setNotice({ kind: 'error', text: 'No incident rows could be parsed from this file.' });
+      const headers = readFirstSheetHeaders(buf);
+      const detected = detectSource(headers);
+      setSourceKind(detected);
+
+      if (detected === 'unrecognized') {
+        setNotice({ kind: 'error', text: UNRECOGNIZED_MESSAGE });
         setStage('idle');
         return;
       }
-      const c = await cleanRows(parsed);
-      setCleaned(c);
-      setStage('reviewing');
 
-      if (c.duplicateCount > 0 || c.conflictCount > 0) {
-        setNotice({
-          kind: 'info',
-          text: `Overlap detected. ${c.newCount} new rows, ${c.duplicateCount} exact duplicates (will be skipped), ${c.conflictCount} conflicting rows (same occurrence, changed content).`,
-        });
-      } else {
-        setNotice({ kind: 'success', text: `Parsed ${c.rows.length} rows. No overlap with existing data.` });
+      if (detected === 'incidents') {
+        const parsed = parseWorkbook(buf);
+        if (parsed.length === 0) {
+          setNotice({ kind: 'error', text: 'No incident rows could be parsed from this file.' });
+          setStage('idle');
+          return;
+        }
+        const c = await cleanRows(parsed);
+        setPreview({ kind: 'incidents', cleaned: c });
+        setStage('reviewing');
+        if (c.duplicateCount > 0 || c.conflictCount > 0) {
+          setNotice({
+            kind: 'info',
+            text: `Overlap detected. ${c.newCount} new rows, ${c.duplicateCount} exact duplicates (will be skipped), ${c.conflictCount} conflicting rows (same occurrence, changed content).`,
+          });
+        } else {
+          setNotice({ kind: 'success', text: `Parsed ${c.rows.length} incident rows. No overlap with existing data.` });
+        }
+        return;
       }
+
+      const maps = await loadTagMaps();
+      setTagMaps(maps);
+
+      if (detected === 'samsara') {
+        const rows = parseSamsaraWorkbook(buf);
+        if (rows.length === 0) {
+          setNotice({ kind: 'error', text: 'No Samsara rows could be parsed from this file.' });
+          setStage('idle');
+          return;
+        }
+        const period = inferPeriodFromFilename(f.name) ?? defaultSamsaraPeriod();
+        setSamsaraPeriodStart(period.start);
+        setSamsaraPeriodEnd(period.end);
+        const unmappedTags = collectUnmappedTags(rows.map((r) => r.tag), maps);
+        setPreview({ kind: 'samsara', rows, unmappedTags });
+        setStage('reviewing');
+        setNotice({
+          kind: unmappedTags.length ? 'warning' : 'success',
+          text: `Parsed ${rows.length} Samsara tag rows.${unmappedTags.length ? ` ${unmappedTags.length} tag(s) have no branch map.` : ''}`,
+        });
+        return;
+      }
+
+      const rows = parseMilesWorkbook(buf);
+      if (rows.length === 0) {
+        setNotice({ kind: 'error', text: 'No mileage rows could be parsed from this file.' });
+        setStage('idle');
+        return;
+      }
+      const { upserts, unmappedCount } = milesRowsToUpserts(rows, maps);
+      const unmappedTags = collectUnmappedTags(rows.map((r) => r.tag), maps);
+      setPreview({ kind: 'mileage', rows, upsertCount: upserts.length, unmappedTags });
+      setStage('reviewing');
+      setNotice({
+        kind: unmappedCount ? 'warning' : 'success',
+        text: `Parsed ${rows.length} mileage rows → ${upserts.length} branch/month upserts.${unmappedCount ? ` ${unmappedCount} row(s) unmapped.` : ''}`,
+      });
     } catch (e) {
       setNotice({ kind: 'error', text: e instanceof Error ? e.message : 'Parse failed' });
       setStage('idle');
@@ -101,20 +198,56 @@ export default function UploadPage() {
   }
 
   async function commit() {
-    if (!cleaned || !file || !fileHash) return;
+    if (!preview || !file || !fileHash) return;
     if (duplicateFile && !overrideDup) {
       setNotice({ kind: 'warning', text: 'Confirm you want to re-merge this duplicate file before committing.' });
       return;
     }
     setStage('committing'); setNotice(null);
     try {
-      const r = await commitIngest(
-        cleaned,
-        { name: file.name, size: file.size, hash: fileHash },
-        user?.id ?? null,
-        { acceptConflicts },
-      );
-      const msg = `Committed batch ${r.batchId.slice(0, 8)}. ${r.inserted} rows written, ${r.duplicatesSkipped} duplicates removed, ${r.uniqueRowsKept} unique rows kept.`;
+      let msg = '';
+      switch (preview.kind) {
+        case 'incidents': {
+          const r = await commitIngest(
+            preview.cleaned,
+            { name: file.name, size: file.size, hash: fileHash },
+            user?.id ?? null,
+            { acceptConflicts },
+          );
+          msg = `Committed batch ${r.batchId.slice(0, 8)}. ${r.inserted} rows written, ${r.duplicatesSkipped} duplicates removed, ${r.uniqueRowsKept} unique rows kept.`;
+          break;
+        }
+        case 'samsara': {
+          if (!samsaraPeriodStart || !samsaraPeriodEnd) {
+            setNotice({ kind: 'error', text: 'Set period start and end before committing Samsara data.' });
+            setStage('reviewing');
+            return;
+          }
+          const r = await commitSamsara(
+            preview.rows,
+            { name: file.name, size: file.size, hash: fileHash },
+            user?.id ?? null,
+            { periodStart: samsaraPeriodStart, periodEnd: samsaraPeriodEnd },
+          );
+          msg = `Committed Samsara batch ${r.batchId.slice(0, 8)}. ${r.inserted} tag summaries written (${samsaraPeriodStart} – ${samsaraPeriodEnd}).`;
+          break;
+        }
+        case 'mileage': {
+          const r = await commitMiles(
+            preview.rows,
+            { name: file.name, size: file.size, hash: fileHash },
+            user?.id ?? null,
+            tagMaps,
+          );
+          msg = `Committed mileage batch ${r.batchId.slice(0, 8)}. ${r.inserted} branch/month rows written${r.unmappedCount ? `, ${r.unmappedCount} unmapped skipped` : ''}.`;
+          break;
+        }
+        default: {
+          const _exhaustive: never = preview;
+          void _exhaustive;
+          throw new Error('Unknown preview kind');
+        }
+      }
       setNotice({ kind: 'success', text: msg });
       toast('success', msg);
       setStage('done');
@@ -136,8 +269,10 @@ export default function UploadPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Upload incident export</h1>
-          <p className="text-sm text-gray-500 mt-1">XLSX or CSV. Duplicate files and overlapping rows are detected automatically.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Upload</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            XLSX or CSV. Detects incidents, Samsara driver safety, or jurisdiction miles by columns.
+          </p>
         </div>
         <button
           onClick={loadHistory}
@@ -167,6 +302,9 @@ export default function UploadPage() {
         {fileHash && (
           <p className="text-[10px] text-gray-400 mt-1 font-mono">SHA-256 {fileHash.slice(0, 16)}…</p>
         )}
+        {sourceKind && sourceKind !== 'unrecognized' && (
+          <p className="text-xs text-gray-600 mt-2">Detected source: <span className="font-medium">{sourceKind}</span></p>
+        )}
       </div>
 
       {notice && <NoticeBanner notice={notice} />}
@@ -188,13 +326,25 @@ export default function UploadPage() {
         </div>
       )}
 
-      {cleaned && stage === 'reviewing' && (
+      {preview?.kind === 'incidents' && (stage === 'reviewing' || stage === 'committing') && (
         <PreviewPanel
-          cleaned={cleaned}
+          cleaned={preview.cleaned}
           acceptConflicts={acceptConflicts}
           setAcceptConflicts={setAcceptConflicts}
-          committing={stage === 'committing'}
+          committing={isCommitting}
           onCommit={commit}
+        />
+      )}
+
+      {preview && preview.kind !== 'incidents' && (stage === 'reviewing' || stage === 'committing') && (
+        <SourcePreviewPanel
+          preview={preview}
+          committing={isCommitting}
+          onCommit={commit}
+          samsaraPeriodStart={samsaraPeriodStart}
+          samsaraPeriodEnd={samsaraPeriodEnd}
+          onSamsaraPeriodStart={setSamsaraPeriodStart}
+          onSamsaraPeriodEnd={setSamsaraPeriodEnd}
         />
       )}
 
@@ -215,6 +365,115 @@ function NoticeBanner({ notice }: { notice: NonNullable<Notice> }) {
     <div className={`border rounded-md p-3 text-sm flex items-start gap-2 ${styles[notice.kind]}`}>
       <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
       <span>{notice.text}</span>
+    </div>
+  );
+}
+
+function SourcePreviewPanel({
+  preview, committing, onCommit,
+  samsaraPeriodStart, samsaraPeriodEnd, onSamsaraPeriodStart, onSamsaraPeriodEnd,
+}: {
+  preview: Exclude<SourcePreview, { kind: 'incidents' }>;
+  committing: boolean;
+  onCommit: () => void;
+  samsaraPeriodStart: string;
+  samsaraPeriodEnd: string;
+  onSamsaraPeriodStart: (v: string) => void;
+  onSamsaraPeriodEnd: (v: string) => void;
+}) {
+  const title = preview.kind === 'samsara' ? 'Samsara preview' : 'Mileage preview';
+  const rowCount = preview.rows.length;
+  const unmapped = preview.unmappedTags;
+  const upsertNote = preview.kind === 'mileage' ? ` · ${preview.upsertCount} upserts` : '';
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+      <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="font-semibold text-gray-900">{title}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{rowCount} rows parsed{upsertNote}</p>
+          </div>
+          <button onClick={onCommit} disabled={committing}
+            className="flex items-center gap-2 px-4 py-2 bg-[#006838] text-white rounded-md hover:bg-[#00532d] disabled:opacity-50">
+            <GitMerge className="w-4 h-4" />{committing ? 'Merging...' : 'Commit'}
+          </button>
+        </div>
+        {preview.kind === 'samsara' && (
+          <div className="mt-3 flex flex-wrap items-end gap-4">
+            <label className="text-xs text-gray-700">
+              <span className="block mb-1 font-medium">Period start</span>
+              <input
+                type="date"
+                value={samsaraPeriodStart}
+                onChange={(e) => onSamsaraPeriodStart(e.target.value)}
+                disabled={committing}
+                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              />
+            </label>
+            <label className="text-xs text-gray-700">
+              <span className="block mb-1 font-medium">Period end</span>
+              <input
+                type="date"
+                value={samsaraPeriodEnd}
+                onChange={(e) => onSamsaraPeriodEnd(e.target.value)}
+                disabled={committing}
+                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              />
+            </label>
+            <p className="text-[11px] text-gray-500 pb-1.5">
+              Defaults from filename when present; otherwise last calendar month. Required before commit.
+            </p>
+          </div>
+        )}
+      </div>
+      {unmapped.length > 0 && (
+        <div className="px-5 py-3 border-b border-amber-100 bg-amber-50 text-xs text-amber-900">
+          Unmapped tags ({unmapped.length}): {unmapped.slice(0, 20).join(', ')}
+          {unmapped.length > 20 ? '…' : ''}
+          {preview.kind === 'mileage' ? ' — these rows will be skipped.' : ' — map them under Settings → Branch tag maps for charts.'}
+        </div>
+      )}
+      <div className="overflow-x-auto max-h-[320px]">
+        <table className="w-full text-xs">
+          <thead className="bg-gray-50 sticky top-0">
+            <tr className="text-left text-[10px] uppercase tracking-wider text-gray-600">
+              <th className="px-3 py-2">Tag</th>
+              {preview.kind === 'samsara' ? (
+                <>
+                  <th className="px-3 py-2 text-right">Mobile</th>
+                  <th className="px-3 py-2 text-right">Inattentive</th>
+                  <th className="px-3 py-2 text-right">Score</th>
+                </>
+              ) : (
+                <>
+                  <th className="px-3 py-2 text-right">Year</th>
+                  <th className="px-3 py-2 text-right">Month</th>
+                  <th className="px-3 py-2 text-right">Miles</th>
+                </>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {preview.kind === 'samsara'
+              ? preview.rows.slice(0, 100).map((r, i) => (
+                  <tr key={i}>
+                    <td className="px-3 py-1.5 font-medium">{r.tag}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{r.mobile_usage}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{r.inattentive_driving}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{r.safety_score ?? '—'}</td>
+                  </tr>
+                ))
+              : preview.rows.slice(0, 100).map((r, i) => (
+                  <tr key={i}>
+                    <td className="px-3 py-1.5 font-medium">{r.tag}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{r.year}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{r.month}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{r.miles.toFixed(1)}</td>
+                  </tr>
+                ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -329,6 +588,7 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
             <thead className="bg-gray-50">
               <tr className="text-left text-[10px] uppercase tracking-wider text-gray-600">
                 <th className="px-3 py-2">File</th>
+                <th className="px-3 py-2">Source</th>
                 <th className="px-3 py-2">Uploaded</th>
                 <th className="px-3 py-2 text-right">Rows</th>
                 <th className="px-3 py-2 text-right">Follow-ons</th>
@@ -345,6 +605,11 @@ function HistoryPanel({ batches, files, merges }: { batches: UploadBatch[]; file
                     <td className="px-3 py-2 font-medium text-gray-900 flex items-center gap-2">
                       <FileText className="w-3.5 h-3.5 text-gray-400" />
                       {b.filename}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                        {b.source_kind ?? 'incidents'}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-gray-600">
                       <span className="flex items-center gap-1">
