@@ -1,9 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = (
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+) as string | undefined;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export function isCloudConfigured(): boolean {
+  return Boolean(
+    supabaseUrl?.trim() &&
+    (String(import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim() ||
+      String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '').trim())
+  );
+}
+
+export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
   auth: { persistSession: true, autoRefreshToken: true },
 });
 

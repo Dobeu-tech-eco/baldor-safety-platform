@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { isCloudConfigured, supabase } from '../lib/supabase';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -12,6 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const cloudReady = isCloudConfigured();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,6 +52,12 @@ export default function Login() {
           <div className="bg-white rounded-lg shadow-2xl p-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">{mode === 'first' ? 'First-time setup' : 'Sign in'}</h1>
             <p className="text-sm text-gray-500 mb-6">Transportation Safety — Internal access only</p>
+
+            {!cloudReady && (
+              <div className="mb-4 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                Lovable database is not connected.
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
