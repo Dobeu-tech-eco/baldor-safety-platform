@@ -386,7 +386,13 @@ export async function commitMiles(
   for (let i = 0; i < payload.length; i += chunkSize) {
     const chunk = payload.slice(i, i + chunkSize);
     const { error } = await supabase.from('mileage').upsert(chunk, { onConflict: 'branch,year,month' });
-    if (error) throw new Error(error.message);
+    if (error) {
+      const msg = error.message || 'Mileage upsert failed';
+      if (msg.toLowerCase().includes('no unique') || msg.toLowerCase().includes('no unique or exclusion constraint')) {
+        throw new Error('Mileage upserts require a UNIQUE constraint on (branch, year, month). Apply migration 20260829181000_mileage_unique.sql and dedupe any existing duplicates, then retry.');
+      }
+      throw new Error(msg);
+    }
     inserted += chunk.length;
   }
 
