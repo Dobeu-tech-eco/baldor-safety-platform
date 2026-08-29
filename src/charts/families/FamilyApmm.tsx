@@ -78,8 +78,8 @@ function aggregateApmmQuarterly(
   mileage: Mileage[],
   through: Date,
 ): QuarterPoint[] {
-  const throughYear = through.getUTCFullYear();
-  const throughQ = quarterOf(through);
+  const throughYear = through.getFullYear();
+  const throughQ = Math.floor(through.getMonth() / 3);
   const milesMap = new Map<string, number>();
   for (const m of mileage) {
     if (m.year > throughYear) continue;
