@@ -13,6 +13,7 @@ vi.mock('./supabase', () => ({
 
 import {
   UNRECOGNIZED_MESSAGE,
+  milesRowsToUpserts,
   parseMilesWorkbook,
   parseSamsaraWorkbook,
   readFirstSheetHeaders,
@@ -66,6 +67,15 @@ describe('ingestSources', () => {
     expect(rows[0].year).toBe(2026);
     expect(rows[0].month).toBe(6);
     expect(rows[0].miles).toBe(1000);
+  });
+
+  it('milesRowsToUpserts skips unmapped tags and counts them', () => {
+    const { upserts, unmappedCount } = milesRowsToUpserts([
+      { tag: 'Boston', year: 2026, month: 6, miles: 1000 },
+      { tag: 'Yard Jockeys', year: 2026, month: 6, miles: 500 },
+    ]);
+    expect(unmappedCount).toBe(1);
+    expect(upserts).toEqual([{ branch: 'BMA', year: 2026, month: 6, miles: 1000 }]);
   });
 
   it('skips preamble rows when finding the header', () => {

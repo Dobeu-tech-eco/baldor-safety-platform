@@ -268,6 +268,27 @@ export function resolveSamsaraPeriod(
 
 export type CommitSamsaraResult = { batchId: string; inserted: number };
 export type CommitMilesResult = { batchId: string; inserted: number; unmappedCount: number };
+export type MilesUpsert = { branch: string; year: number; month: number; miles: number };
+
+export function milesRowsToUpserts(
+  rows: ParsedMilesRow[],
+  maps: TagBranchMap[] = DEFAULT_TAG_MAPS
+): { upserts: MilesUpsert[]; unmappedCount: number } {
+  const byKey = new Map<string, MilesUpsert>();
+  let unmappedCount = 0;
+  for (const row of rows) {
+    const branch = mapTagToBranch(row.tag, maps);
+    if (!branch) {
+      unmappedCount++;
+      continue;
+    }
+    const key = `${branch}|${row.year}|${row.month}`;
+    const existing = byKey.get(key);
+    if (existing) existing.miles += row.miles;
+    else byKey.set(key, { branch, year: row.year, month: row.month, miles: row.miles });
+  }
+  return { upserts: [...byKey.values()], unmappedCount };
+}
 
 export async function commitSamsara(
   rows: ParsedSamsaraRow[],
@@ -345,21 +366,7 @@ export async function commitMiles(
     .maybeSingle();
   if (batchErr || !batch) throw new Error(batchErr?.message || 'Failed to create upload batch');
 
-  const byKey = new Map<string, { branch: string; year: number; month: number; miles: number }>();
-  let unmappedCount = 0;
-  for (const row of rows) {
-    const branch = mapTagToBranch(row.tag, maps);
-    if (!branch) {
-      unmappedCount++;
-      continue;
-    }
-    const key = `${branch}|${row.year}|${row.month}`;
-    const existing = byKey.get(key);
-    if (existing) existing.miles += row.miles;
-    else byKey.set(key, { branch, year: row.year, month: row.month, miles: row.miles });
-  }
-
-  const payload = [...byKey.values()];
+  const { upserts: payload, unmappedCount } = milesRowsToUpserts(rows, maps);
   let inserted = 0;
   const chunkSize = 200;
   for (let i = 0; i < payload.length; i += chunkSize) {
